@@ -43,6 +43,8 @@ log({ type: "process_args", args: process.argv.slice(2) });
 let pendingHostTools = [];
 let activeHostTool = null;
 let hostToolCounter = 0;
+let childWaitSequence = false;
+let partialOnAbort = false;
 const finishHostToolSequence = (message) => {
   send({ type: "message_start" });
   send({ type: "message_update", assistantMessageEvent: { type: "text_delta", delta: message } });
@@ -97,6 +99,15 @@ input.on("line", (line) => {
         { toolName: "submit_candidate", arguments: {} },
       );
     }
+    if (activeHostTool.toolName === "create_child_goal" && childWaitSequence) {
+      const content = frame.result?.content?.[0]?.text;
+      const child = JSON.parse(String(content));
+      if (!child?.goalId) throw new Error("Expected one bounded backend child goal");
+      pendingHostTools.unshift({
+        toolName: "start_child_agent",
+        arguments: { goal_id: child.goalId },
+      });
+    }
     activeHostTool = null;
     sendNextHostTool();
     return;
@@ -128,6 +139,31 @@ input.on("line", (line) => {
     });
     return;
   }
+  if (frame.type === "prompt" && String(frame.message).includes("HOST_TOOL_WAIT_FOR_CHILD")) {
+    childWaitSequence = true;
+    send({ id: frame.id, type: "response", command: frame.type, success: true, data: { agentInvoked: true } });
+    send({ type: "agent_start" });
+    pendingHostTools = [
+      {
+        toolName: "create_child_goal",
+        arguments: {
+          owner_agent_id: "AGT-BACKEND",
+          title: "Inspect one bounded backend question",
+          description: "Return one observable read-only result.",
+          acceptance_criteria: ["One result returns to the parent"],
+          required_checks: [],
+        },
+      },
+    ];
+    sendNextHostTool();
+    return;
+  }
+  if (frame.type === "prompt" && String(frame.message).includes("PARTIAL_ON_ABORT")) {
+    partialOnAbort = true;
+    send({ id: frame.id, type: "response", command: frame.type, success: true, data: { agentInvoked: true } });
+    send({ type: "agent_start" });
+    return;
+  }
   if (frame.type === "prompt" && String(frame.message).includes("HOST_TOOL_BUILD_CANDIDATE")) {
     send({ id: frame.id, type: "response", command: frame.type, success: true, data: { agentInvoked: true } });
     send({ type: "agent_start" });
@@ -145,8 +181,16 @@ input.on("line", (line) => {
   if (frame.type === "prompt") {
     send({ type: "agent_start" });
     send({ type: "message_start" });
-    const boundedTitle = String(frame.message).match(/^Goal [^:]+: (.+)$/m)?.[1];
-    send({ type: "message_update", assistantMessageEvent: { type: "text_delta", delta: boundedTitle ? "result:" + boundedTitle : "reply:" + process.cwd().split("/").at(-1) + ":" + frame.message } });
+    const prompt = String(frame.message);
+    const boundedTitle = prompt.match(/^Goal [^:]+: (.+)$/m)?.[1];
+    const output = prompt.includes("FOLLOW_UP_RESULT")
+      ? "FOLLOW_UP_RESULT"
+      : prompt.includes("CHILD_RESULT")
+        ? "PARENT_RECONCILED_CHILD_RESULT"
+        : boundedTitle
+          ? "result:" + boundedTitle
+          : "reply:" + process.cwd().split("/").at(-1) + ":" + prompt;
+    send({ type: "message_update", assistantMessageEvent: { type: "text_delta", delta: output } });
     send({ type: "message_end" });
     if (!String(frame.message).includes("HOLD")) {
       send({ type: "agent_end", messages: [], isTerminal: true });
@@ -163,6 +207,10 @@ input.on("line", (line) => {
   }
   if (frame.type === "abort") {
     // A held turn ends only after the controller targets this process with abort.
+    if (partialOnAbort) {
+      process.stdout.write('{"type":"message_update"', () => process.exit(0));
+      return;
+    }
     send({ type: "agent_end", messages: [], isTerminal: true });
   }
 });
@@ -1176,6 +1224,106 @@ describe("supervised exact OMP sessions", () => {
     expect(center.store.getGoal(goal.goalId).state).toBe("complete");
   });
 
+  it("refreshes the durable read-only outcome after a bounded follow-up prompt", async () => {
+    const root = await temporaryRoot("oacc-read-follow-up-");
+    const config = await testConfig(root);
+    const center = new ControlCenter(config);
+    controlCenters.push(center);
+    const goal = center.createOwnerGoal({
+      ownerAgentId: "DIR-COMMS",
+      title: "Refresh one durable outcome",
+      description: "Return the first bounded result.",
+      acceptanceCriteria: ["The latest result replaces stale outcome evidence"],
+      requiredChecks: [],
+      riskLevel: "medium",
+      dataClass: "internal",
+      writeScope: "none",
+      externalEffects: [],
+    });
+    const firstIdle = waitForPersistedEvents(center, "session.idle");
+    const session = await center.startGoal(goal.goalId);
+    await firstIdle;
+    const firstIdentity = center.store.getGoal(goal.goalId).artifactIdentity;
+    expect(firstIdentity).toMatch(/^[a-f0-9]{64}$/);
+
+    const secondIdle = waitForPersistedEvents(center, "session.idle", 1, session.sessionId);
+    await center.supervisor.sendInteractiveMessage(
+      "DIR-COMMS",
+      "FOLLOW_UP_RESULT: replace the first result with this final result",
+    );
+    await secondIdle;
+
+    const refreshed = center.store.getGoal(goal.goalId);
+    expect(refreshed).toMatchObject({ state: "verifying" });
+    expect(refreshed.artifactIdentity).not.toBe(firstIdentity);
+    expect(center.store.getGoalOutput(goal.goalId)?.content).toBe("FOLLOW_UP_RESULT");
+    expect(center.store.listEvents(100)).toContainEqual(
+      expect.objectContaining({
+        type: "artifact.mutated",
+        goalId: goal.goalId,
+        agentId: "DIR-COMMS",
+      }),
+    );
+  });
+
+  it("waits for a delegated child result before finalizing the parent outcome", async () => {
+    const root = await temporaryRoot("oacc-child-wait-");
+    const config = await testConfig(root);
+    const center = new ControlCenter(config);
+    controlCenters.push(center);
+    const parent = center.createOwnerGoal({
+      ownerAgentId: "ORCH-01",
+      title: "Coordinate one delegated result",
+      description: "HOST_TOOL_WAIT_FOR_CHILD and reconcile exactly one backend result.",
+      acceptanceCriteria: ["The parent finalizes only after the child result arrives"],
+      requiredChecks: [],
+      riskLevel: "medium",
+      dataClass: "internal",
+      writeScope: "none",
+      externalEffects: [],
+    });
+    const parentSession = await center.startGoal(parent.goalId);
+    const parentIdle = waitForPersistedEvents(center, "session.idle", 1, parentSession.sessionId);
+    await parentIdle;
+    const child = center.store.listGoals().find((candidate) => candidate.parentGoalId === parent.goalId);
+    if (!child) {
+      throw new Error("Delegated child goal was not created");
+    }
+
+    expect(center.store.getGoal(parent.goalId)).toMatchObject({
+      state: "waiting_input",
+      artifactIdentity: null,
+    });
+    expect(center.store.getGoal(child.goalId)).toMatchObject({
+      state: "verifying",
+      artifactIdentity: expect.stringMatching(/^[a-f0-9]{64}$/),
+    });
+
+    const reconciledIdle = waitForPersistedEvents(center, "session.idle", 1, parentSession.sessionId);
+    await center.supervisor.relayReadOnlyMessage({
+      senderAgentId: "AGT-BACKEND",
+      recipientAgentId: "ORCH-01",
+      goalId: child.goalId,
+      message: "CHILD_RESULT: bounded backend inspection complete",
+    });
+    await reconciledIdle;
+
+    expect(center.store.getGoal(parent.goalId)).toMatchObject({
+      state: "verifying",
+      artifactIdentity: expect.stringMatching(/^[a-f0-9]{64}$/),
+    });
+    expect(center.store.getGoalOutput(parent.goalId)?.content).toContain("CHILD_RESULT");
+    expect(center.store.listMessages(100)).toContainEqual(
+      expect.objectContaining({
+        senderAgentId: "AGT-BACKEND",
+        recipientAgentId: "ORCH-01",
+        goalId: child.goalId,
+        direction: "agent_to_agent",
+        status: "delivered",
+      }),
+    );
+  });
+
   it("rejects host tools after a bounded goal leaves its active running state", async () => {
     const root = await temporaryRoot("oacc-input-boundary-");
     const config = await testConfig(root);
@@ -1268,6 +1416,46 @@ describe("supervised exact OMP sessions", () => {
         }),
       );
     }
+  });
+
+  it("discards a trailing partial frame once explicit cancellation begins", async () => {
+    const root = await temporaryRoot("oacc-cancel-partial-");
+    const config = await testConfig(root);
+    const center = new ControlCenter(config);
+    controlCenters.push(center);
+    const goal = center.createOwnerGoal({
+      ownerAgentId: "DIR-COMMS",
+      title: "Cancel one bounded partial-frame probe",
+      description: "PARTIAL_ON_ABORT",
+      acceptanceCriteria: ["Explicit cancellation remains cancellation"],
+      requiredChecks: [],
+      riskLevel: "low",
+      dataClass: "internal",
+      writeScope: "none",
+      externalEffects: [],
+    });
+    const streaming = waitForPersistedEvents(center, "session.streaming");
+    const session = await center.startGoal(goal.goalId);
+    await streaming;
+    const discarded = waitForPersistedEvents(
+      center,
+      "session.shutdown_frame_discarded",
+      1,
+      session.sessionId,
+    );
+
+    await center.supervisor.cancel(session.sessionId);
+    await discarded;
+
+    expect(
+      center.store.listSessions(100).find((candidate) => candidate.sessionId === session.sessionId),
+    ).toMatchObject({ state: "exited", errorCode: null });
+    expect(center.store.getGoal(goal.goalId).state).toBe("cancelled");
+    expect(
+      center.store
+        .listEvents(100)
+        .some((event) => event.type === "session.crashed" && event.sessionId === session.sessionId),
+    ).toBe(false);
   });
 
   it("creates only bounded descendant goals and surfaces a child OMP process crash", async () => {
