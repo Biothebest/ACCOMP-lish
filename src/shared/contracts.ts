@@ -336,6 +336,7 @@ export interface DashboardSnapshot {
     version: string;
     organizationName: string;
     ownerDisplayName: string;
+    ompProfile: string;
     policyVersion: string;
     host: string;
     port: number;

@@ -24,6 +24,8 @@ The control center is an orchestration and review surface. It is not a customer 
 14. No host tool can send email, move money, make a legal commitment, push or merge Git, deploy, enable a provider, or operate on customer data.
 15. The browser is never an authority store. Agent, goal, session, workspace, check, evidence, gate, and approval views are projections of controller state; every mutation is revalidated by the controller against current identity and status.
 16. No generic goal-state, caller-supplied artifact identity, standalone check, evidence, gate, agent-authored approval request, or territory mutation endpoint exists. Those records originate only from atomic workspace preparation or the exact role-bound OMP host tool. Dedicated completion, retry, session cancellation, owner approval decision, and rollback paths enforce their lifecycle invariants. Completion revalidates exact evidence, checks, and on-disk identity and stops the producer session; final release evaluation recomputes identity again; rollback invalidates the candidate and approvals, releases leases, and quarantines the worktree.
+17. Setup stores one non-secret OMP profile name. Every controller-owned OMP child receives that exact `--profile`; profile choice never substitutes for session authority.
+18. External session authority comes only from a 48-byte full-control `/collab` bearer link. The raw link is validated in the browser, canonicalized to the official OMP web client, and never sent to the local API, SQLite, logs, or Web Storage. The browser retains only profile, room ID, relay origin, and a SHA-256 link fingerprint; a mismatched room, relay, key, or profile fails closed until explicit owner forget.
 
 ## Assets
 
@@ -64,6 +66,9 @@ The control center is an orchestration and review surface. It is not a customer 
 | Threat | Control | Failure behavior |
 | --- | --- | --- |
 | Cross-session prompt delivery | Exact `agentId → sessionId → child process` registry; no native process-global hub | Reject missing or mismatched session |
+| Collaboration link disclosure | Password input, no API submission, no logging or Web Storage, `no-referrer` iframe, and URL-fragment delivery only to the official OMP client | Clear the in-memory link on disconnect or reload; the owner must stop `/collab` if disclosure is suspected |
+| External session substitution | Persisted profile, room ID, relay origin, and full SHA-256 link fingerprint must all match; switching requires explicit disconnect and forget | Reject the new link without changing the remembered identity |
+| View-only or malformed collaboration link | Exact current OMP link grammar, 48-byte full-control key requirement, secure WSS relay or loopback-only WS | Reject before constructing the embedded client URL |
 | Model chooses a stronger/weaker route | Deterministic policy table and post-start `get_state` verification | Terminate initialization |
 | Prompt injection requests unauthorized action | Static role/tool allowlists plus controller validation on every host call | Reject tool call; preserve bounded event |
 | Hidden reasoning or secret leakage | Event allowlist, private-delta drop, sensitive-key redaction, assistant-output protected-material filter | Redacted marker or no event |
@@ -87,6 +92,7 @@ The control center is an orchestration and review surface. It is not a customer 
 
 - **Same-account local process trust:** the current local session bootstrap is possession-based. A malicious process already running as the same macOS user can call the loopback endpoint and obtain its own local session. CSRF and loopback checks protect the browser boundary, not a compromised OS account. Do not run this controller on a shared or untrusted login session.
 - **OMP authentication storage:** OMP receives the real user HOME so it can use existing provider authentication. The model receives no filesystem tool, but the OMP executable itself remains trusted code. A later stronger sandbox should isolate authentication without breaking the provider boundary.
+- **Remote collaboration client trust:** paired-session content is end-to-end encrypted from the OMP host to the browser guest, and the relay is content-blind. Availability and delivery of the browser client still depend on `https://my.omp.sh`; compromise of that client origin could expose a link presented to it. Use only the reviewed official origin, stop `/collab` after suspected disclosure, and self-host the reviewed OMP web client if this supply-chain risk becomes unacceptable.
 - **macOS-only check sandbox:** `sandbox-exec` behavior is verified on the supported macOS host. This project is not portable to another operating system without a separately reviewed sandbox implementation.
 - **Single-controller assumption:** SQLite and in-memory session ownership assume one controller process for one data directory. Do not run two controller instances against the same database.
 - **No autonomous retention deletion yet:** sanitized operational state persists until the owner deletes the local data directory. Raw OMP transcript persistence is disabled. A retention worker must be separately authorized and tested before addition.

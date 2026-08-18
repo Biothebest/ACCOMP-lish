@@ -48,25 +48,29 @@ NODE_ENV=production npm start
 
 Open <http://127.0.0.1:4317/>.
 
-Interactive setup asks for the organization and human-owner display names. Non-interactive setup:
+Interactive setup asks for the organization, human-owner display name, and existing OMP profile. Non-interactive setup:
 
 ```bash
 npm run setup -- \
   --organization "Example Organization" \
-  --owner "Alex Owner"
+  --owner "Alex Owner" \
+  --omp-profile "default"
 ```
 
-Setup writes the Git-ignored `config/organization.json` from the checked-in schema example. Runtime fails closed when that file is absent or malformed.
+Setup writes the Git-ignored `config/organization.json` from the checked-in schema example. Runtime fails closed when that file is absent, malformed, or names an invalid profile.
+
+On the dashboard's first screen, open the exact terminal OMP session you intend to control and run `/collab`. Scan its QR code or paste its **full-control** link. The link is a bearer secret: the control center gives it only to the official embedded OMP client and never sends it to the local API, database, logs, or browser storage. Only a non-secret room fingerprint is retained; reloads require the same link, and another room is rejected until the owner explicitly forgets the binding.
 
 ## Project customization
 
-`config/organization.json` controls display identity:
+`config/organization.json` controls display identity and the OMP configuration scope used by controller-owned sessions:
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "organizationName": "Example Organization",
-  "ownerDisplayName": "Alex Owner"
+  "ownerDisplayName": "Alex Owner",
+  "ompProfile": "default"
 }
 ```
 

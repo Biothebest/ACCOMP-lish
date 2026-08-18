@@ -3588,3 +3588,480 @@ code {
     animation: none;
   }
 }
+
+/* Exact OMP session pairing */
+.pairing-gate {
+  min-height: 100vh;
+  padding: 28px clamp(16px, 5vw, 72px) 56px;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(78, 161, 255, 0.2), transparent 32%),
+    radial-gradient(circle at 88% 28%, rgba(77, 215, 208, 0.1), transparent 28%), #071019;
+}
+.pairing-brand {
+  width: min(980px, 100%);
+  min-height: 56px;
+  margin: 0 auto 32px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.pairing-brand h1,
+.pairing-card h2,
+.pairing-scanner h2,
+.paired-session h2 {
+  margin: 0;
+}
+.pairing-brand h1 {
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+.pairing-brand-mark {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(78, 161, 255, 0.38);
+  border-radius: 11px;
+  color: #f4faff;
+  background: linear-gradient(145deg, #3f91dc, #245b93);
+  box-shadow: 0 12px 30px rgba(25, 105, 170, 0.25);
+  font-weight: 800;
+}
+.pairing-controller-state {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.pairing-controller-state i,
+.paired-session-status i {
+  width: 7px;
+  height: 7px;
+  display: inline-block;
+  border-radius: 999px;
+  background: var(--red);
+  box-shadow: 0 0 0 3px rgba(240, 112, 120, 0.1);
+}
+.pairing-controller-state.online i,
+.paired-session-status i {
+  background: var(--green);
+  box-shadow: 0 0 0 3px rgba(85, 217, 151, 0.1);
+}
+.pairing-card {
+  width: min(980px, 100%);
+  margin: 0 auto;
+  overflow: hidden;
+  border: 1px solid rgba(148, 176, 201, 0.17);
+  border-radius: 22px;
+  background: linear-gradient(155deg, rgba(17, 31, 46, 0.97), rgba(9, 20, 31, 0.98));
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.36);
+}
+.pairing-intro {
+  padding: clamp(28px, 5vw, 48px) clamp(24px, 6vw, 62px) 28px;
+  border-bottom: 1px solid var(--border);
+}
+.pairing-step-label {
+  display: inline-flex;
+  margin-bottom: 14px;
+  padding: 6px 9px;
+  border: 1px solid rgba(78, 161, 255, 0.25);
+  border-radius: 999px;
+  color: #a8d5ff;
+  background: rgba(78, 161, 255, 0.08);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.pairing-intro h2 {
+  font-size: clamp(28px, 4vw, 42px);
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+}
+.pairing-intro p {
+  max-width: 710px;
+  margin: 17px 0 0;
+  color: #9db0c1;
+  font-size: 15px;
+  line-height: 1.7;
+}
+.pairing-card code {
+  color: #c8e5ff;
+  font-family: "SFMono-Regular", Consolas, monospace;
+}
+.pairing-profile-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 1px solid var(--border);
+}
+.pairing-profile-row > div {
+  display: grid;
+  gap: 5px;
+  padding: 18px clamp(24px, 6vw, 62px);
+}
+.pairing-profile-row > div + div {
+  border-left: 1px solid var(--border);
+}
+.pairing-profile-row span,
+.pairing-binding span {
+  color: var(--muted-2);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.pairing-profile-row strong {
+  color: #eef7ff;
+  font-size: 14px;
+}
+.pairing-binding {
+  margin: 24px clamp(24px, 6vw, 62px) 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 15px 17px;
+  border: 1px solid rgba(242, 189, 98, 0.24);
+  border-radius: 12px;
+  background: rgba(242, 189, 98, 0.06);
+}
+.pairing-binding.mismatch {
+  border-color: rgba(240, 112, 120, 0.3);
+  background: rgba(240, 112, 120, 0.06);
+}
+.pairing-binding div {
+  display: grid;
+  gap: 4px;
+}
+.pairing-binding strong {
+  font-size: 12px;
+}
+.pairing-binding p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.pairing-text-button {
+  flex: 0 0 auto;
+  padding: 7px 9px;
+  border: 0;
+  color: #9db0c1;
+  background: transparent;
+  font-size: 11px;
+}
+.pairing-text-button.danger {
+  color: #f7a2a8;
+}
+.pairing-steps {
+  margin: 0;
+  padding: 30px clamp(24px, 6vw, 62px) 8px;
+  display: grid;
+  gap: 19px;
+  list-style: none;
+}
+.pairing-steps li {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: 14px;
+}
+.pairing-steps li > span {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(78, 161, 255, 0.28);
+  border-radius: 9px;
+  color: #acd7ff;
+  background: rgba(78, 161, 255, 0.08);
+  font-size: 11px;
+  font-weight: 800;
+}
+.pairing-steps strong {
+  font-size: 13px;
+}
+.pairing-steps p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+.pairing-command {
+  width: min(420px, 100%);
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 9px 9px 13px;
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  background: #07121d;
+}
+.pairing-command button {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: #a7c0d4;
+  background: #122334;
+  font-size: 10px;
+}
+.pairing-form {
+  padding: 26px clamp(24px, 6vw, 62px) 28px;
+}
+.pairing-form label {
+  display: block;
+  margin-bottom: 8px;
+  color: #b8c9d7;
+  font-size: 11px;
+  font-weight: 650;
+}
+.pairing-input-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 9px;
+}
+.pairing-input-row input {
+  min-width: 0;
+  padding: 12px 13px;
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  outline: 0;
+  color: var(--text);
+  background: #07121d;
+}
+.pairing-input-row input:focus {
+  border-color: rgba(78, 161, 255, 0.55);
+  box-shadow: 0 0 0 3px rgba(78, 161, 255, 0.08);
+}
+.pairing-primary-button,
+.pairing-secondary-button,
+.pairing-scan-button {
+  border: 1px solid rgba(78, 161, 255, 0.3);
+  border-radius: 9px;
+  font-weight: 700;
+}
+.pairing-primary-button {
+  padding: 0 18px;
+  color: #f6fbff;
+  background: linear-gradient(145deg, #367fc0, #235f99);
+}
+.pairing-scan-button {
+  margin-top: 10px;
+  padding: 9px 12px;
+  color: #b6dafa;
+  background: rgba(78, 161, 255, 0.07);
+  font-size: 11px;
+}
+.pairing-form small {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted-2);
+  font-size: 10px;
+}
+.pairing-error {
+  margin: 12px 0 0;
+  color: #f7a2a8;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.pairing-security-note {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 13px;
+  padding: 18px clamp(24px, 6vw, 62px);
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  background: rgba(3, 10, 17, 0.3);
+  font-size: 10.5px;
+  line-height: 1.55;
+}
+.pairing-security-note strong {
+  color: #d7e7f3;
+}
+.pairing-scanner-backdrop {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(1, 6, 11, 0.82);
+  backdrop-filter: blur(12px);
+}
+.pairing-scanner {
+  width: min(480px, 100%);
+  padding: 22px;
+  border: 1px solid var(--border-strong);
+  border-radius: 16px;
+  background: #0d1926;
+  box-shadow: var(--shadow);
+}
+.pairing-scanner video {
+  width: 100%;
+  aspect-ratio: 1;
+  margin: 18px 0 10px;
+  display: block;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #02070c;
+}
+.pairing-scanner p {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.pairing-secondary-button {
+  width: 100%;
+  padding: 10px;
+  color: #c4d5e2;
+  background: #132536;
+}
+
+.app-shell.session-mode {
+  grid-template-columns: 228px minmax(0, 1fr);
+}
+.session-mode .activity-rail,
+.session-mode .stage-heading,
+.session-mode .kpi-strip {
+  display: none;
+}
+.session-mode .main-stage {
+  width: 100%;
+  max-width: none;
+  grid-column: 2;
+  padding: 20px;
+}
+.paired-session-hidden {
+  display: none;
+}
+.paired-session-active {
+  min-width: 0;
+}
+.paired-session {
+  display: grid;
+  gap: 14px;
+}
+.paired-session-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 2px 2px 0;
+}
+.paired-session-header > div > p:last-child {
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+.paired-session-header h2 {
+  font-size: 21px;
+}
+.paired-session-boundary {
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  background: #050b12;
+  box-shadow: var(--shadow);
+}
+.paired-session-status {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 13px;
+  border-bottom: 1px solid var(--border);
+  color: #cbe2d8;
+  background: #0c1823;
+  font-size: 10.5px;
+}
+.paired-session-status span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 700;
+}
+.paired-session-status small {
+  margin-left: auto;
+  color: var(--muted-2);
+  font-size: 9.5px;
+}
+.paired-session iframe {
+  width: 100%;
+  height: max(650px, calc(100vh - 210px));
+  display: block;
+  border: 0;
+  background: #0f0b14;
+}
+.paired-session-footnote {
+  padding: 0 4px;
+  color: var(--muted-2);
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+@media (max-width: 930px) {
+  .pairing-gate {
+    padding: 18px 14px 38px;
+  }
+  .pairing-brand {
+    margin-bottom: 18px;
+  }
+  .session-mode .main-stage {
+    padding: 14px;
+  }
+  .paired-session iframe {
+    height: calc(100vh - 245px);
+    min-height: 560px;
+  }
+}
+
+@media (max-width: 620px) {
+  .pairing-brand {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .pairing-controller-state {
+    width: 100%;
+    margin: 2px 0 0 50px;
+  }
+  .pairing-card {
+    border-radius: 15px;
+  }
+  .pairing-intro h2 {
+    font-size: 29px;
+  }
+  .pairing-profile-row,
+  .pairing-input-row,
+  .pairing-security-note {
+    grid-template-columns: 1fr;
+  }
+  .pairing-profile-row > div + div {
+    border-top: 1px solid var(--border);
+    border-left: 0;
+  }
+  .pairing-binding,
+  .paired-session-header,
+  .paired-session-status {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .pairing-primary-button {
+    min-height: 43px;
+  }
+  .paired-session-header .danger-button {
+    width: 100%;
+  }
+  .paired-session-status {
+    padding-block: 10px;
+  }
+  .paired-session-status small {
+    margin-left: 0;
+  }
+  .paired-session iframe {
+    min-height: 540px;
+  }
+}

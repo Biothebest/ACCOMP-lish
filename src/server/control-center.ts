@@ -119,6 +119,7 @@ export class ControlCenter {
       version: CONTROLLER_VERSION,
       organizationName: this.config.organizationName,
       ownerDisplayName: this.config.ownerDisplayName,
+      ompProfile: this.config.ompProfile,
       policyVersion: MODEL_POLICY_VERSION,
       roleContractVersion: ROLE_CONTRACT_VERSION,
       host: this.config.host,

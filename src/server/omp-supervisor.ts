@@ -148,6 +148,8 @@ export class OmpSupervisor {
     const child = spawn(
       this.config.ompPath,
       [
+        "--profile",
+        this.config.ompProfile,
         "--mode",
         "rpc",
         "--cwd",

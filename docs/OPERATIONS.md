@@ -11,18 +11,20 @@ The controller never stores its own state in a target repository.
 ## Owner quick start
 
 1. Run `npm ci`.
-2. Run `npm run setup` and enter the organization and human-owner display names. For non-interactive setup, run `npm run setup -- --organization "Organization Name" --owner "Owner Name"`.
+2. Run `npm run setup` and enter the organization, human-owner display name, and existing OMP profile. For non-interactive setup, run `npm run setup -- --organization "Organization Name" --owner "Owner Name" --omp-profile "default"`.
 3. Run `npm run verify`; the canonical gate includes the production build.
 4. Start the controller with `NODE_ENV=production npm start`.
-5. Open `http://127.0.0.1:4317/`. Confirm the header says **Live OMP stream** and the footer shows the expected controller, OMP, policy, and role-contract versions.
-6. In **Command Center**, select the intended agent. Inspect its parent, mission, role authority, latest OMP lifecycle, workspace, territory, messages, checks, and evidence before assigning work.
-7. Create one bounded draft in **New goal**. A repository-writing draft must name every required check, then use **Prepare isolated workspace** to bind the repository, narrow territory, exact local check commands, and one-hour lease atomically. Preparation does not start OMP or change the primary worktree.
-8. Use **Dispatch goal** only after the exact agent, acceptance criteria, authority, and workspace are correct.
-9. Keep **Approvals** for exact owner decisions. **Request changes** rejects the current request and requires a new exact candidate.
-10. Use **Evidence & Releases** to confirm Quality, Security, checks, and owner approval all refer to one immutable candidate. **Gates recorded** means the ledger prerequisites pass; the controller still recomputes the full identity immediately before its final release decision. This controller cannot deploy.
-11. Use **Interrupt** or **Cancel** on the exact selected session when required. Closing the browser does not stop controller-owned OMP processes. Accepting verified completion stops that goal's producer session.
-12. For a `blocked`, `failed`, or `cancelled` goal, use the two-step **Authorize retry** control only after inspecting retained state. Retry starts a new bounded OMP attempt, renews an expired territory lease, and invalidates any attached candidate authority first. Use **Abandon attempt** instead to quarantine the workspace and release its lease.
-13. Stop the controller with `Ctrl-C`; confirm shutdown before moving or deleting local state.
+5. Open `http://127.0.0.1:4317/`. Confirm the pairing screen says **Local controller ready** and shows the intended OMP profile.
+6. In the exact terminal OMP session to control, run `/collab`. Scan its QR code or paste its full-control link into the pairing screen. Treat that link like a password: never put it in shell history, issue text, chat, screenshots, or logs.
+7. Confirm the embedded OMP panel shows the expected transcript and participant status. That panel—not the outer **Exact room loaded** label—is authoritative for relay connectivity. A transient network outage reconnects inside the OMP client; a page reload requires the same link again.
+8. In **Command Center**, select the intended agent. Inspect its parent, mission, role authority, latest OMP lifecycle, workspace, territory, messages, checks, and evidence before assigning work. Controller-owned child sessions are pinned to the OMP profile selected during setup.
+9. Create one bounded draft in **New goal**. A repository-writing draft must name every required check, then use **Prepare isolated workspace** to bind the repository, narrow territory, exact local check commands, and one-hour lease atomically. Preparation does not start OMP or change the primary worktree.
+10. Use **Dispatch goal** only after the exact agent, acceptance criteria, authority, and workspace are correct.
+11. Keep **Approvals** for exact owner decisions. **Request changes** rejects the current request and requires a new exact candidate.
+12. Use **Evidence & Releases** to confirm Quality, Security, checks, and owner approval all refer to one immutable candidate. **Gates recorded** means the ledger prerequisites pass; the controller still recomputes the full identity immediately before its final release decision. This controller cannot deploy.
+13. Use **Interrupt** or **Cancel** on the exact selected controller-owned session when required. Use **Paired OMP Session** for the externally paired room. Closing the browser does not stop controller-owned OMP processes. Accepting verified completion stops that goal's producer session.
+14. For a `blocked`, `failed`, or `cancelled` goal, use the two-step **Authorize retry** control only after inspecting retained state. Retry starts a new bounded OMP attempt, renews an expired territory lease, and invalidates any attached candidate authority first. Use **Abandon attempt** instead to quarantine the workspace and release its lease.
+15. To switch the external OMP room, choose **Disconnect room**, then **Forget binding**, then pair the new room. Stop the controller with `Ctrl-C`; confirm shutdown before moving or deleting local state.
 
 For one explicit provider-backed proof after installation, run `npm run smoke:live-omp`. It creates disposable state, accepts only the exact response `READY`, shuts down its OMP child, and removes the temporary registry.
 

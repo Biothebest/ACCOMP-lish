@@ -33,6 +33,7 @@ interface ControllerSnapshotMetadata {
   version: string;
   organizationName: string;
   ownerDisplayName: string;
+  ompProfile: string;
   policyVersion: string;
   roleContractVersion: string;
   host: string;

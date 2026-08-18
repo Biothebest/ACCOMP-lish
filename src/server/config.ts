@@ -11,6 +11,7 @@ export interface ControllerConfig {
   organizationConfigPath: string;
   organizationName: string;
   ownerDisplayName: string;
+  ompProfile: string;
   dataDir: string;
   databasePath: string;
   webDistPath: string;
@@ -38,9 +39,10 @@ const LOOPBACK_HOSTS: Readonly<Record<string, true>> = {
 
 const ORGANIZATION_CONFIG = z
   .object({
-    schemaVersion: z.literal(1),
+    schemaVersion: z.literal(2),
     organizationName: z.string().trim().min(1).max(80),
     ownerDisplayName: z.string().trim().min(1).max(80),
+    ompProfile: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/),
   })
   .strict();
 
@@ -120,9 +122,10 @@ export function loadConfig(overrides: Partial<ControllerConfig> = {}): Controlle
   const fileOrganization =
     overrides.organizationName && overrides.ownerDisplayName
       ? {
-          schemaVersion: 1 as const,
+          schemaVersion: 2 as const,
           organizationName: overrides.organizationName,
           ownerDisplayName: overrides.ownerDisplayName,
+          ompProfile: overrides.ompProfile ?? "default",
         }
       : readOrganizationConfig(organizationConfigPath);
   const organization = ORGANIZATION_CONFIG.parse({
@@ -131,6 +134,7 @@ export function loadConfig(overrides: Partial<ControllerConfig> = {}): Controlle
       overrides.organizationName ?? process.env.OACC_ORGANIZATION_NAME ?? fileOrganization.organizationName,
     ownerDisplayName:
       overrides.ownerDisplayName ?? process.env.OACC_OWNER_NAME ?? fileOrganization.ownerDisplayName,
+    ompProfile: overrides.ompProfile ?? fileOrganization.ompProfile,
   });
   const dataDir = overrides.dataDir ?? resolve(process.env.OACC_DATA_DIR || join(projectRoot, ".data"));
   const requestedHost = overrides.host ?? process.env.OACC_HOST ?? "127.0.0.1";
@@ -170,6 +174,7 @@ export function loadConfig(overrides: Partial<ControllerConfig> = {}): Controlle
     organizationConfigPath,
     organizationName: organization.organizationName,
     ownerDisplayName: organization.ownerDisplayName,
+    ompProfile: organization.ompProfile,
     dataDir,
     databasePath: overrides.databasePath ?? join(dataDir, "control-center.sqlite3"),
     webDistPath: overrides.webDistPath ?? join(projectRoot, "dist-web"),

@@ -9,6 +9,8 @@ import { CONTROLLER_VERSION, type ControlCenter } from "./control-center.js";
 import { ROLE_CONTRACT_VERSION } from "./roles.js";
 import { assertLoopbackHost, sanitizeError } from "./security.js";
 
+const SSE_HEARTBEAT_MS = 4_000;
+
 const ID_PARAMS = z.object({ id: z.string().min(1).max(150) }).strict();
 const AGENT_PARAMS = z.object({ agentId: z.string().min(1).max(100) }).strict();
 const GOAL_INPUT = z
@@ -115,7 +117,7 @@ export async function buildHttpServer(controlCenter: ControlCenter): Promise<Fas
     reply.header("Cross-Origin-Resource-Policy", "same-origin");
     reply.header(
       "Content-Security-Policy",
-      "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; font-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
+      "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; font-src 'self'; frame-src https://my.omp.sh; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
     );
   });
 
@@ -255,7 +257,7 @@ export async function buildHttpServer(controlCenter: ControlCenter): Promise<Fas
       }
       reply.raw.write(`event: update\ndata: ${JSON.stringify(event)}\n\n`);
     });
-    heartbeat = setInterval(() => reply.raw.write(": heartbeat\n\n"), 15_000);
+    heartbeat = setInterval(() => reply.raw.write(": heartbeat\n\n"), SSE_HEARTBEAT_MS);
     reply.raw.once("close", () => {
       if (heartbeat) clearInterval(heartbeat);
       unsubscribe();

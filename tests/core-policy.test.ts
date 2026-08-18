@@ -335,6 +335,7 @@ describe("immutable evidence and owner approval gates", () => {
       version: "test-controller",
       organizationName: "Test Project",
       ownerDisplayName: "Test Owner",
+      ompProfile: "test",
       policyVersion: "test-policy",
       roleContractVersion: ROLE_CONTRACT_VERSION,
       host: "127.0.0.1",

@@ -39,6 +39,7 @@ const commandLogPath = process.cwd().split("/").includes("workspaces")
   ? join(dirname(configPath), "workspace-commands-" + process.pid + ".ndjson")
   : "commands.ndjson";
 const log = (value) => appendFileSync(commandLogPath, JSON.stringify(value) + "\\n");
+log({ type: "process_args", args: process.argv.slice(2) });
 let pendingHostTools = [];
 let activeHostTool = null;
 let hostToolCounter = 0;
@@ -190,6 +191,7 @@ async function testConfig(
     projectRoot: root,
     organizationName: "Test Project",
     ownerDisplayName: "Test Owner",
+    ompProfile: "test",
     dataDir: join(root, "controller-data"),
     databasePath: join(root, "controller-data", "controller.sqlite3"),
     webDistPath: join(root, "dist-web"),
@@ -250,9 +252,10 @@ describe("organization configuration", () => {
     await writeFile(
       join(root, "config", "organization.json"),
       JSON.stringify({
-        schemaVersion: 1,
+        schemaVersion: 2,
         organizationName: "Example Workshop",
         ownerDisplayName: "Alex Owner",
+        ompProfile: "st",
       }),
       "utf-8",
     );
@@ -272,6 +275,7 @@ describe("organization configuration", () => {
     expect(center.snapshot().controller).toMatchObject({
       organizationName: "Example Workshop",
       ownerDisplayName: "Alex Owner",
+      ompProfile: "st",
     });
     expect(center.store.listAgents().find((agent) => agent.agentId === "OWNER-01")?.displayName).toBe(
       "Alex Owner",
@@ -1012,6 +1016,7 @@ describe("supervised exact OMP sessions", () => {
     expect(communicationsLog).not.toContain("legal-only");
     expect(legalLog).toContain("legal-only");
     expect(legalLog).not.toContain("communications-only");
+    expect(communicationsLog).toContain('"--profile","test"');
     expect(communicationsLog).toContain("BEGIN CONTROLLER-OWNED AGENT COMMAND CONTRACT");
     expect(communicationsLog).toContain("`CLASSIFY_REQUEST`");
     expect(communicationsLog).not.toContain("`PRESERVE_INTAKE`");
@@ -1491,6 +1496,46 @@ describe("supervised exact OMP sessions", () => {
 });
 
 describe("localhost HTTP authorization boundary", () => {
+  it("keeps one authenticated event stream alive across the socket idle timeout", async () => {
+    const root = await temporaryRoot("oacc-sse-");
+    const config = await testConfig(root);
+    const center = new ControlCenter(config);
+    controlCenters.push(center);
+    const server = await buildHttpServer(center);
+    const address = await server.listen({ host: "127.0.0.1", port: 0 });
+    const abort = new AbortController();
+    const timeout = setTimeout(() => abort.abort(), 14_000);
+    try {
+      const sessionResponse = await fetch(`${address}/api/session`);
+      const cookie = sessionResponse.headers.get("set-cookie")?.split(";", 1)[0];
+      expect(cookie).toBeTruthy();
+      const eventsResponse = await fetch(`${address}/events`, {
+        headers: { cookie: cookie as string },
+        signal: abort.signal,
+      });
+      expect(eventsResponse.status).toBe(200);
+      if (!eventsResponse.body) throw new Error("Event stream response body is missing");
+      const reader = eventsResponse.body.getReader();
+      const decoder = new TextDecoder();
+      const startedAt = Date.now();
+      let streamText = "";
+      let heartbeatCount = 0;
+      while (heartbeatCount < 3) {
+        const frame = await reader.read();
+        if (frame.done) throw new Error("Event stream closed before three heartbeats");
+        streamText += decoder.decode(frame.value, { stream: true });
+        heartbeatCount = streamText.match(/: heartbeat\n\n/g)?.length ?? 0;
+      }
+      expect(streamText).toContain("event: ready");
+      expect(Date.now() - startedAt).toBeGreaterThanOrEqual(10_500);
+      await reader.cancel();
+    } finally {
+      clearTimeout(timeout);
+      abort.abort();
+      await server.close();
+    }
+  }, 20_000);
+
   it("requires a signed local session plus CSRF and loopback origin for every mutation", async () => {
     const root = await temporaryRoot("oacc-http-");
     const repository = join(root, "repository");
@@ -1576,6 +1621,7 @@ describe("localhost HTTP authorization boundary", () => {
     const createdGoalId = created.json<{ goalId: string }>().goalId;
     expect(center.store.getGoal(createdGoalId).state).toBe("draft");
     expect(created.headers["content-security-policy"]).not.toContain("unsafe-inline");
+    expect(created.headers["content-security-policy"]).toContain("frame-src https://my.omp.sh");
     const unauthorizedWriteGoal = await server.inject({
       method: "POST",
       url: "/api/goals",

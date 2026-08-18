@@ -23,8 +23,17 @@ import {
   type WorkspaceCheckInput,
 } from "./api.js";
 import { CloudExperience } from "./CloudExperience.js";
+import { PairedSession, PairingOnboarding } from "./PairingExperience.js";
+import {
+  establishPairing,
+  PAIRING_IDENTITY_STORAGE_KEY,
+  type PairingConnection,
+  type PairingIdentity,
+  parseStoredPairingIdentity,
+  serializePairingIdentity,
+} from "./pairing.js";
 
-type View = "cloud" | "command" | "goals" | "approvals" | "evidence" | "improvement";
+type View = "session" | "cloud" | "command" | "goals" | "approvals" | "evidence" | "improvement";
 type IconName =
   | "command"
   | "goals"
@@ -47,6 +56,18 @@ type IconName =
 const api = new DashboardApi();
 const APPROVAL_PAGE_SIZE = 8;
 
+function loadStoredPairingIdentity(): PairingIdentity | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const stored = window.localStorage.getItem(PAIRING_IDENTITY_STORAGE_KEY);
+    const identity = parseStoredPairingIdentity(stored);
+    if (stored && !identity) window.localStorage.removeItem(PAIRING_IDENTITY_STORAGE_KEY);
+    return identity;
+  } catch {
+    return null;
+  }
+}
+
 const STATUS_LABELS: Readonly<Record<AgentState, string>> = {
   idle: "Idle",
   queued: "Queued",
@@ -63,6 +84,7 @@ const STATUS_LABELS: Readonly<Record<AgentState, string>> = {
 };
 
 const NAV_ITEMS: ReadonlyArray<{ id: View; label: string; icon: IconName }> = [
+  { id: "session", label: "Paired OMP Session", icon: "link" },
   { id: "cloud", label: "Agent Cloud", icon: "agent" },
   { id: "command", label: "Command Center", icon: "command" },
   { id: "goals", label: "Goal Board", icon: "goals" },
@@ -75,7 +97,7 @@ export default function App(): ReactNode {
   const [snapshot, setSnapshot] = useState<DashboardSnapshot | null>(null);
   const [selectedAgentId, setSelectedAgentId] = useState("ORCH-01");
   const [agentDetail, setAgentDetail] = useState<AgentDetail | null>(null);
-  const [view, setView] = useState<View>("cloud");
+  const [view, setView] = useState<View>("session");
   const [cloudAgentId, setCloudAgentId] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -87,6 +109,8 @@ export default function App(): ReactNode {
   const [workspaceGoal, setWorkspaceGoal] = useState<GoalSummary | null>(null);
   const [liveText, setLiveText] = useState<Record<string, string>>({});
   const refreshTimer = useRef<NodeJS.Timeout | null>(null);
+  const [pairingIdentity, setPairingIdentity] = useState<PairingIdentity | null>(loadStoredPairingIdentity);
+  const [pairingConnection, setPairingConnection] = useState<PairingConnection | null>(null);
 
   const refresh = useCallback(async (signal?: AbortSignal) => {
     const next = await api.snapshot(signal);
@@ -171,9 +195,40 @@ export default function App(): ReactNode {
     [refresh, selectedAgentId],
   );
 
+  const configuredOmpProfile = snapshot?.controller.ompProfile ?? null;
+  const pairSession = useCallback(
+    async (link: string) => {
+      if (!configuredOmpProfile) throw new Error("Controller OMP profile is unavailable.");
+      const connection = await establishPairing(link, configuredOmpProfile, pairingIdentity);
+      try {
+        window.localStorage.setItem(
+          PAIRING_IDENTITY_STORAGE_KEY,
+          serializePairingIdentity(connection.identity),
+        );
+      } catch {
+        throw new Error("The browser could not retain the non-secret room binding. Pairing was not started.");
+      }
+      setPairingIdentity(connection.identity);
+      setPairingConnection(connection);
+      setView("session");
+    },
+    [configuredOmpProfile, pairingIdentity],
+  );
+
+  const forgetPairing = useCallback(() => {
+    try {
+      window.localStorage.removeItem(PAIRING_IDENTITY_STORAGE_KEY);
+    } catch {
+      return;
+    }
+    setPairingConnection(null);
+    setPairingIdentity(null);
+  }, []);
+
   const selectedAgent = snapshot?.agents.find((agent) => agent.agentId === selectedAgentId) ?? null;
   const pendingApprovals = snapshot?.approvals.filter((approval) => approval.status === "pending") ?? [];
   const cloudMode = view === "cloud";
+  const sessionMode = view === "session";
   const cloudAgent = cloudAgentId
     ? (snapshot?.agents.find((agent) => agent.agentId === cloudAgentId) ?? null)
     : null;
@@ -182,8 +237,22 @@ export default function App(): ReactNode {
     return <LoadingScreen />;
   }
 
+  if (snapshot && !pairingConnection) {
+    return (
+      <PairingOnboarding
+        organizationName={snapshot.controller.organizationName}
+        ownerDisplayName={snapshot.controller.ownerDisplayName}
+        ompProfile={snapshot.controller.ompProfile}
+        controllerConnected={connected}
+        expectedIdentity={pairingIdentity}
+        onPair={pairSession}
+        onForget={forgetPairing}
+      />
+    );
+  }
+
   return (
-    <div className={`app-shell ${cloudMode ? "cloud-mode" : ""}`}>
+    <div className={`app-shell ${cloudMode ? "cloud-mode" : ""} ${sessionMode ? "session-mode" : ""}`}>
       <header className="topbar">
         <div className="brand-lockup">
           <div className="brand-mark" aria-hidden="true">
@@ -203,7 +272,7 @@ export default function App(): ReactNode {
           ) : null}
           <div className={`connection-pill ${connected ? "online" : "offline"}`}>
             <span className="connection-dot" />
-            {connected ? "Live OMP stream" : "Reconnecting"}
+            {connected ? "Controller live" : "Controller reconnecting"}
           </div>
           <span className="separator" />
           <div className="owner-chip">
@@ -246,6 +315,7 @@ export default function App(): ReactNode {
             Controller {snapshot?.controller.version ?? "—"} · OMP{" "}
             {snapshot?.controller.ompVersion ?? "unavailable"}
           </span>
+          <span className="version">OMP profile {snapshot?.controller.ompProfile ?? "—"}</span>
           <span className="version">
             Policy {snapshot?.controller.policyVersion ?? "—"} · Roles{" "}
             {snapshot?.controller.roleContractVersion ?? "—"}
@@ -254,6 +324,14 @@ export default function App(): ReactNode {
       </aside>
 
       <main className="main-stage">
+        {pairingConnection ? (
+          <div
+            className={sessionMode ? "paired-session-active" : "paired-session-hidden"}
+            aria-hidden={!sessionMode}
+          >
+            <PairedSession connection={pairingConnection} onDisconnect={() => setPairingConnection(null)} />
+          </div>
+        ) : null}
         {cloudMode && snapshot ? (
           <CloudExperience
             snapshot={snapshot}
@@ -2373,6 +2451,7 @@ function Icon({ name }: { name: IconName }): ReactNode {
 
 function viewTitle(view: View): string {
   return {
+    session: "One exact OMP session, cryptographically bound",
     cloud: "Your agent team, alive in the cloud",
     command: "Supervise every agent from one trusted surface",
     goals: "Bounded goals, visible ownership",
@@ -2383,6 +2462,8 @@ function viewTitle(view: View): string {
 }
 function viewDescription(view: View): string {
   return {
+    session:
+      "Use OMP's encrypted collaboration channel for transcript, prompting, interruption, and subagent control.",
     cloud: "Watch agents work, wait, hand off, and ask for your attention without opening the engine room.",
     command: "Exact OMP sessions, current work, blockers, messages, and evidence—without terminal hunting.",
     goals: "Track each goal from owner-authorized draft through independent verification and settlement.",
