@@ -237,7 +237,8 @@ export function PairingOnboarding({
             <div>
               <strong>Bind this browser</strong>
               <p>
-                Scan the QR code or paste the 48-byte full-control link. View-only links cannot steer agents.
+                Scan the QR code or paste the full-control value printed after{" "}
+                <strong>or any web browser</strong>. The visible <code>my.omp.sh/#…</code> form is accepted.
               </p>
             </div>
           </li>

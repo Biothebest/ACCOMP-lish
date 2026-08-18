@@ -59,7 +59,7 @@ npm run setup -- \
 
 Setup writes the Git-ignored `config/organization.json` from the checked-in schema example. Runtime fails closed when that file is absent, malformed, or names an invalid profile.
 
-On the dashboard's first screen, open the exact terminal OMP session you intend to control and run `/collab`. Scan its QR code or paste its **full-control** link. The link is a bearer secret: the control center gives it only to the official embedded OMP client and never sends it to the local API, database, logs, or browser storage. Only a non-secret room fingerprint is retained; reloads require the same link, and another room is rejected until the owner explicitly forgets the binding.
+On the dashboard's first screen, open the exact terminal OMP session you intend to control and run `/collab`. Scan its QR code or paste only the full-control value printed after **or any web browser**; OMP displays that copyable value as `my.omp.sh/#…`, without a visible `https://` prefix. The link is a bearer secret: the control center gives it only to the official embedded OMP client and never sends it to the local API, database, logs, or browser storage. Only a non-secret room fingerprint is retained; reloads require the same link, and another room is rejected until the owner explicitly forgets the binding.
 
 ## Project customization
 

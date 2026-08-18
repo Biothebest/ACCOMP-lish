@@ -1,4 +1,5 @@
 const OFFICIAL_OMP_CLIENT = "https://my.omp.sh";
+const OFFICIAL_OMP_VISIBLE_PREFIX = "my.omp.sh/#";
 const DEFAULT_RELAY = "wss://my.omp.sh";
 const MAX_LINK_LENGTH = 2_048;
 const PROFILE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
@@ -107,16 +108,24 @@ export function pairingDisplayFingerprint(identity: PairingIdentity): string {
 }
 
 function parsePairingLink(input: string): ParsedPairingLink {
-  const normalized = input.trim();
-  if (!normalized || normalized.length > MAX_LINK_LENGTH) {
+  const trimmed = input.trim();
+  if (!trimmed || trimmed.length > MAX_LINK_LENGTH) {
     throw new Error("Paste one bounded OMP /collab link.");
   }
+  const compact = trimmed.replace(/[ \t\r\n]+/g, "");
+  const normalized =
+    compact.startsWith(OFFICIAL_OMP_VISIBLE_PREFIX) || compact.startsWith(`${OFFICIAL_OMP_CLIENT}/#`)
+      ? compact
+      : trimmed;
   return parsePairingCandidate(normalized, 0);
 }
 
 function parsePairingCandidate(value: string, depth: number): ParsedPairingLink {
   if (depth > 3) throw new Error("The OMP collaboration link is nested too deeply.");
   const candidate = decodeFragment(value.trim());
+  if (candidate.startsWith(OFFICIAL_OMP_VISIBLE_PREFIX)) {
+    return parsePairingCandidate(candidate.slice(OFFICIAL_OMP_VISIBLE_PREFIX.length), depth + 1);
+  }
 
   if (/^https?:\/\//i.test(candidate)) {
     const url = parseUrl(candidate);
@@ -161,7 +170,9 @@ function parseRoomSecret(value: string, relayOrigin: string): ParsedPairingLink 
   const roomId = match?.[1];
   const roomKey = match?.[2];
   if (!roomId || !roomKey || !ROOM_PATTERN.test(roomId) || !KEY_PATTERN.test(roomKey)) {
-    throw new Error("This is not a valid OMP collaboration link.");
+    throw new Error(
+      'This is not a valid OMP collaboration link. Paste only the full-control value printed after "or any web browser" by /collab.',
+    );
   }
   if (roomKey.length === 43) {
     throw new Error("This is a view-only OMP link. Use the 48-byte full-control link from /collab.");

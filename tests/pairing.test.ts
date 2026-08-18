@@ -29,8 +29,10 @@ describe("exclusive OMP collaboration pairing", () => {
     expect(parseStoredPairingIdentity(stored)).toEqual(connection.identity);
   });
 
-  it("normalizes browser wrappers and secure custom relay links through the official OMP client", async () => {
+  it("normalizes printed, wrapped, and custom relay browser links through the official OMP client", async () => {
     const wrapped = await establishPairing(`https://my.omp.sh/#${ROOM}.${FULL_KEY}`, "default", null);
+    const printed = await establishPairing(`my.omp.sh/#${ROOM}.${FULL_KEY}`, "default", null);
+    const lineWrapped = await establishPairing(`my.omp.sh/#${ROOM}.\n${FULL_KEY}`, "default", null);
     const custom = await establishPairing(
       `https://web.example/collab/#relay.example.com/r/${ROOM}.${FULL_KEY}`,
       "default",
@@ -38,6 +40,8 @@ describe("exclusive OMP collaboration pairing", () => {
     );
 
     expect(wrapped.clientUrl).toBe(`https://my.omp.sh/#${ROOM}.${FULL_KEY}`);
+    expect(printed.clientUrl).toBe(wrapped.clientUrl);
+    expect(lineWrapped.clientUrl).toBe(wrapped.clientUrl);
     expect(custom.clientUrl).toBe(`https://my.omp.sh/#relay.example.com/r/${ROOM}.${FULL_KEY}`);
     expect(custom.identity.relayOrigin).toBe("wss://relay.example.com");
   });
