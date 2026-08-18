@@ -1,0 +1,8 @@
+node_modules/
+dist-web/
+dist-server/
+.data/
+config/organization.json
+coverage/
+*.log
+.DS_Store
