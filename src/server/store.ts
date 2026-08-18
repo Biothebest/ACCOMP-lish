@@ -31,6 +31,9 @@ import { canonicalJson, sanitizeMetadata, sanitizeText, sha256 } from "./securit
 
 interface ControllerSnapshotMetadata {
   version: string;
+  productName: string;
+  projectId: string;
+  repositoryRoot: string | null;
   organizationName: string;
   ownerDisplayName: string;
   ompProfile: string;

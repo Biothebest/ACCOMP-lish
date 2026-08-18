@@ -45,7 +45,7 @@ try {
   await server.listen({ host: config.host, port: config.port });
 } catch (error) {
   const safe = sanitizeError(error);
-  console.error(`Agent Control Center failed to start: ${safe.summary}`);
+  console.error(`ACCOMP-lish failed to start: ${safe.summary}`);
   try {
     await controlCenter.shutdown();
   } finally {

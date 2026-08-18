@@ -149,10 +149,10 @@ describe("versioned roles and deterministic model routing", () => {
         externalEffects: [],
       },
       buildModelRoutes({
-        OACC_OMP_PROVIDER: "test-provider",
-        OACC_MODEL_LUNA: "luna-pinned",
-        OACC_MODEL_TERRA: "terra-pinned",
-        OACC_MODEL_SOL: "sol-pinned",
+        ACCOMPLISH_OMP_PROVIDER: "test-provider",
+        ACCOMPLISH_MODEL_LUNA: "luna-pinned",
+        ACCOMPLISH_MODEL_TERRA: "terra-pinned",
+        ACCOMPLISH_MODEL_SOL: "sol-pinned",
       }),
     );
 
@@ -333,6 +333,9 @@ describe("immutable evidence and owner approval gates", () => {
     });
     const snapshot = store.snapshot({
       version: "test-controller",
+      productName: "ACCOMP-lish",
+      projectId: "test-project",
+      repositoryRoot: "/test/project",
       organizationName: "Test Project",
       ownerDisplayName: "Test Owner",
       ompProfile: "test",

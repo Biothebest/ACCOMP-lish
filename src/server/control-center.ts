@@ -22,7 +22,7 @@ import { ControlStore } from "./store.js";
 import { WorkspaceManager } from "./workspaces.js";
 
 const executeFile = promisify(execFile);
-export const CONTROLLER_VERSION = "0.1.0";
+export const CONTROLLER_VERSION = "0.2.0";
 export const SUPPORTED_OMP_VERSION = "omp/17.3.7";
 
 export class ControlCenter {
@@ -98,7 +98,7 @@ export class ControlCenter {
       this.ompCompatibilityError = null;
       this.store.recordEvent({
         type: "controller.ready",
-        summary: `Local Agent Control Center ready with ${this.ompVersion}`,
+        summary: `ACCOMP-lish ready with ${this.ompVersion}`,
         metadata: { ompVersion: this.ompVersion, safetyMode: "local_only" },
       });
     } catch (error) {
@@ -117,6 +117,9 @@ export class ControlCenter {
     this.approvals.expireAuthorizations();
     return this.store.snapshot({
       version: CONTROLLER_VERSION,
+      productName: "ACCOMP-lish",
+      projectId: this.config.projectId,
+      repositoryRoot: this.config.repositoryRoot,
       organizationName: this.config.organizationName,
       ownerDisplayName: this.config.ownerDisplayName,
       ompProfile: this.config.ompProfile,

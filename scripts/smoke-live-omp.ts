@@ -30,7 +30,7 @@ function waitForEvent(
   });
 }
 
-const dataDir = await mkdtemp(join(tmpdir(), "oacc-live-omp-"));
+const dataDir = await mkdtemp(join(tmpdir(), "accomplish-live-omp-"));
 const config = loadConfig({
   organizationName: "Verification Project",
   ownerDisplayName: "Verification Owner",

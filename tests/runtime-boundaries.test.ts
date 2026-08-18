@@ -295,7 +295,7 @@ function waitForPersistedEvents(
 
 describe("organization configuration", () => {
   it("loads a generic project identity and seeds the configured owner name", async () => {
-    const root = await temporaryRoot("oacc-organization-");
+    const root = await temporaryRoot("accomplish-organization-");
     await mkdir(join(root, "config"), { recursive: true });
     await writeFile(
       join(root, "config", "organization.json"),
@@ -331,7 +331,7 @@ describe("organization configuration", () => {
   });
 
   it("fails closed when the required organization configuration is missing", async () => {
-    const root = await temporaryRoot("oacc-missing-organization-");
+    const root = await temporaryRoot("accomplish-missing-organization-");
     expect(() =>
       loadConfig({
         projectRoot: root,
@@ -411,7 +411,7 @@ describe("OMP framing and event normalization", () => {
 
 describe("controller process ownership", () => {
   it("rejects a second live owner and permits reacquisition only after release", async () => {
-    const root = await temporaryRoot("oacc-process-lock-");
+    const root = await temporaryRoot("accomplish-process-lock-");
     const first = acquireControllerLock(root);
     expect(() => acquireControllerLock(root)).toThrow("already owned by live process");
     first.release();
@@ -422,7 +422,7 @@ describe("controller process ownership", () => {
 
 describe("isolated workspaces, leases, and checks", () => {
   it("rejects overlapping write territory and path escape, and prevents checks from mutating candidates", async () => {
-    const root = await temporaryRoot("oacc-workspace-");
+    const root = await temporaryRoot("accomplish-workspace-");
     const repository = join(root, "repository");
     await mkdir(join(repository, "src"), { recursive: true });
     await writeFile(join(repository, "src", "candidate.txt"), "original\n", "utf-8");
@@ -435,17 +435,41 @@ describe("isolated workspaces, leases, and checks", () => {
         cwd: repository,
       },
     );
+    const outsideRepository = join(root, "outside-repository");
+    await mkdir(outsideRepository);
+    await writeFile(join(outsideRepository, "candidate.txt"), "outside\n", "utf-8");
+    execFileSync("git", ["init"], { cwd: outsideRepository });
+    execFileSync("git", ["add", "."], { cwd: outsideRepository });
+    execFileSync(
+      "git",
+      ["-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-m", "base"],
+      { cwd: outsideRepository },
+    );
     const hookMarker = join(root, "malicious-hook-ran");
     const checkoutHook = join(repository, ".git", "hooks", "post-checkout");
     await writeFile(checkoutHook, `#!/bin/sh\nprintf compromised > ${JSON.stringify(hookMarker)}\n`, "utf-8");
     await chmod(checkoutHook, 0o700);
 
-    const config = await testConfig(root, { projectRoot: repository });
+    const config = await testConfig(root, {
+      projectRoot: repository,
+      repositoryRoot: repository,
+    });
     const database = openDatabase(config.databasePath);
     databases.push(database);
     const store = new ControlStore(database);
     const workspaces = new WorkspaceManager(store, config);
     const backendGoal = createGoal(store, "AGT-BACKEND");
+    const outsideGoal = createGoal(store, "DIR-SECURITY");
+    await expect(
+      workspaces.createIsolatedWorktree({
+        goalId: outsideGoal.goalId,
+        agentId: "DIR-SECURITY",
+        repositoryPath: outsideRepository,
+        baseRef: "HEAD",
+        mode: "read",
+        integrationOwnerAgentId: "OWNER-01",
+      }),
+    ).rejects.toThrow("outside the selected ACCOMP-lish project capsule");
     const webGoal = createGoal(store, "AGT-WEB");
     const backend = await workspaces.createIsolatedWorktree({
       goalId: backendGoal.goalId,
@@ -740,7 +764,7 @@ describe("isolated workspaces, leases, and checks", () => {
     await expect(readFile(join(backend.worktreePath, "src", "forbidden.txt"), "utf-8")).rejects.toThrow();
   });
   it("carries one delegated candidate through exact checks, independent gates, owner approval, and completion", async () => {
-    const root = await temporaryRoot("oacc-cycle-");
+    const root = await temporaryRoot("accomplish-cycle-");
     const repository = join(root, "repository");
     await mkdir(join(repository, "src"), { recursive: true });
     await writeFile(join(repository, "src", "candidate.txt"), "base\n", "utf-8");
@@ -959,7 +983,7 @@ describe("isolated workspaces, leases, and checks", () => {
     expect(center.approvals.get(approval.approvalId).status).toBe("invalidated");
   });
   it("rolls back one exact candidate by invalidating approval and quarantining its workspace", async () => {
-    const root = await temporaryRoot("oacc-rollback-");
+    const root = await temporaryRoot("accomplish-rollback-");
     const repository = join(root, "repository");
     await mkdir(repository, { recursive: true });
     await writeFile(join(repository, "candidate.txt"), "base\n", "utf-8");
@@ -1048,7 +1072,7 @@ describe("isolated workspaces, leases, and checks", () => {
 
 describe("supervised exact OMP sessions", () => {
   it("keeps concurrent streams isolated and interrupts only the selected session", async () => {
-    const root = await temporaryRoot("oacc-omp-");
+    const root = await temporaryRoot("accomplish-omp-");
     const config = await testConfig(root);
     const center = new ControlCenter(config);
     controlCenters.push(center);
@@ -1145,7 +1169,7 @@ describe("supervised exact OMP sessions", () => {
   });
 
   it("marks a silent streaming session stale and clears the warning on resumed activity", async () => {
-    const root = await temporaryRoot("oacc-stale-");
+    const root = await temporaryRoot("accomplish-stale-");
     const config = await testConfig(root, { staleSessionMs: 100 });
     const center = new ControlCenter(config);
     controlCenters.push(center);
@@ -1168,7 +1192,7 @@ describe("supervised exact OMP sessions", () => {
   });
 
   it("persists an explicit failed message when an exact OMP request times out", async () => {
-    const root = await temporaryRoot("oacc-timeout-");
+    const root = await temporaryRoot("accomplish-timeout-");
     const config = await testConfig(root, { ompRequestTimeoutMs: 50 });
     const center = new ControlCenter(config);
     controlCenters.push(center);
@@ -1195,7 +1219,7 @@ describe("supervised exact OMP sessions", () => {
   });
 
   it("persists a read-only OMP outcome as exact owner-reviewed completion evidence", async () => {
-    const root = await temporaryRoot("oacc-read-outcome-");
+    const root = await temporaryRoot("accomplish-read-outcome-");
     const config = await testConfig(root);
     const center = new ControlCenter(config);
     controlCenters.push(center);
@@ -1235,7 +1259,7 @@ describe("supervised exact OMP sessions", () => {
   });
 
   it("refreshes the durable read-only outcome after a bounded follow-up prompt", async () => {
-    const root = await temporaryRoot("oacc-read-follow-up-");
+    const root = await temporaryRoot("accomplish-read-follow-up-");
     const config = await testConfig(root);
     const center = new ControlCenter(config);
     controlCenters.push(center);
@@ -1277,7 +1301,7 @@ describe("supervised exact OMP sessions", () => {
   });
 
   it("waits for a delegated child result before finalizing the parent outcome", async () => {
-    const root = await temporaryRoot("oacc-child-wait-");
+    const root = await temporaryRoot("accomplish-child-wait-");
     const config = await testConfig(root);
     const center = new ControlCenter(config);
     controlCenters.push(center);
@@ -1335,7 +1359,7 @@ describe("supervised exact OMP sessions", () => {
   });
 
   it("rejects host tools after a bounded goal leaves its active running state", async () => {
-    const root = await temporaryRoot("oacc-input-boundary-");
+    const root = await temporaryRoot("accomplish-input-boundary-");
     const config = await testConfig(root);
     const center = new ControlCenter(config);
     controlCenters.push(center);
@@ -1400,7 +1424,7 @@ describe("supervised exact OMP sessions", () => {
       },
     ];
     for (const failureCase of cases) {
-      const root = await temporaryRoot(`oacc-${failureCase.name}-`);
+      const root = await temporaryRoot(`accomplish-${failureCase.name}-`);
       const ompPath = join(root, `${failureCase.name}-omp.mjs`);
       if (failureCase.source !== null) {
         await writeFile(ompPath, failureCase.source, "utf-8");
@@ -1429,7 +1453,7 @@ describe("supervised exact OMP sessions", () => {
   });
 
   it("discards a trailing partial frame once explicit cancellation begins", async () => {
-    const root = await temporaryRoot("oacc-cancel-partial-");
+    const root = await temporaryRoot("accomplish-cancel-partial-");
     const config = await testConfig(root);
     const center = new ControlCenter(config);
     controlCenters.push(center);
@@ -1469,7 +1493,7 @@ describe("supervised exact OMP sessions", () => {
   });
 
   it("creates only bounded descendant goals and surfaces a child OMP process crash", async () => {
-    const root = await temporaryRoot("oacc-child-");
+    const root = await temporaryRoot("accomplish-child-");
     const config = await testConfig(root);
     const center = new ControlCenter(config);
     controlCenters.push(center);
@@ -1695,7 +1719,7 @@ describe("supervised exact OMP sessions", () => {
 
 describe("localhost HTTP authorization boundary", () => {
   it("keeps one authenticated event stream alive across the socket idle timeout", async () => {
-    const root = await temporaryRoot("oacc-sse-");
+    const root = await temporaryRoot("accomplish-sse-");
     const config = await testConfig(root);
     const center = new ControlCenter(config);
     controlCenters.push(center);
@@ -1735,7 +1759,7 @@ describe("localhost HTTP authorization boundary", () => {
   }, 20_000);
 
   it("requires a signed local session plus CSRF and loopback origin for every mutation", async () => {
-    const root = await temporaryRoot("oacc-http-");
+    const root = await temporaryRoot("accomplish-http-");
     const repository = join(root, "repository");
     await mkdir(repository, { recursive: true });
     await writeFile(join(repository, "candidate.txt"), "base\n", "utf-8");
@@ -1988,7 +2012,7 @@ describe("localhost HTTP authorization boundary", () => {
     await server.close();
   });
   it("preserves owner sessions across a controller restart and reuses CSRF safely", async () => {
-    const root = await temporaryRoot("oacc-http-session-restart-");
+    const root = await temporaryRoot("accomplish-http-session-restart-");
     const config = await testConfig(root);
     const first = new ControlCenter(config);
     controlCenters.push(first);

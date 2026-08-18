@@ -334,6 +334,9 @@ export interface DashboardSnapshot {
   generatedAt: string;
   controller: {
     version: string;
+    productName: string;
+    projectId: string;
+    repositoryRoot: string | null;
     organizationName: string;
     ownerDisplayName: string;
     ompProfile: string;

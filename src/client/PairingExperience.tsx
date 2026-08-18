@@ -158,11 +158,11 @@ export function PairingOnboarding({
     <main className="pairing-gate">
       <header className="pairing-brand">
         <span className="pairing-brand-mark" aria-hidden="true">
-          O
+          A
         </span>
         <div>
           <p className="eyebrow">{organizationName}</p>
-          <h1>OMP Agent Control Center</h1>
+          <h1>ACCOMP-lish</h1>
         </div>
         <span className={`pairing-controller-state ${controllerConnected ? "online" : "offline"}`}>
           <i /> {controllerConnected ? "Local controller ready" : "Local controller reconnecting"}

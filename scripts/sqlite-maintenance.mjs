@@ -4,8 +4,8 @@ import { fileURLToPath } from "node:url";
 import Database from "better-sqlite3";
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const dataDir = resolve(process.env.OACC_DATA_DIR || join(projectRoot, ".data"));
-const databasePath = resolve(process.env.OACC_DATABASE_PATH || join(dataDir, "control-center.sqlite3"));
+const dataDir = resolve(process.env.ACCOMPLISH_DATA_DIR || join(projectRoot, ".data"));
+const databasePath = resolve(process.env.ACCOMPLISH_DATABASE_PATH || join(dataDir, "control-center.sqlite3"));
 const [command = "verify", inputPath, confirmation] = process.argv.slice(2);
 
 function timestamp() {

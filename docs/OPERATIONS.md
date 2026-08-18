@@ -1,32 +1,47 @@
-# Local Agent Control Center Operations
+# ACCOMP-lish Operations
 
 ## Supported boundary
 
-This runbook operates the localhost control center only. It does not send customer communications, access target-project data without an explicitly prepared workspace, move money, make legal commitments, push or merge code, deploy, or enable production providers.
+This runbook operates localhost ACCOMP-lish controllers only. It does not send customer communications, access unselected project data, move money, make legal commitments, push or merge code, deploy, or enable production providers.
 
-Run commands from the cloned `omp-agent-control-center` repository. Target repositories remain separate and may be attached only through an owner-authorized isolated workspace.
+The reviewed ACCOMP-lish installation is shared; project authority is not. Every initialized Git repository receives a separate capsule, SQLite database, controller secret, OMP room binding, port, log, process identity, worktree directory, and audit history outside the repository.
 
-The controller never stores its own state in a target repository.
+## Install once
 
-## Owner quick start
+1. From the cloned ACCOMP-lish repository, run `npm ci`.
+2. Run `npm run verify`; the canonical gate includes the production build.
+3. Run `npm run install:cli`.
+4. Confirm `accomplish --help` resolves to this installation.
 
-1. Run `npm ci`.
-2. Run `npm run setup` and enter the organization, human-owner display name, and existing OMP profile. For non-interactive setup, run `npm run setup -- --organization "Organization Name" --owner "Owner Name" --omp-profile "default"`.
-3. Run `npm run verify`; the canonical gate includes the production build.
-4. Start the controller with `NODE_ENV=production npm start`.
-5. Open `http://127.0.0.1:4317/`. Confirm the pairing screen says **Local controller ready** and shows the intended OMP profile.
-6. In the exact terminal OMP session to control, run `/collab`. Scan its QR code or paste only the full-control value printed after **or any web browser** into the pairing screen. The visible `my.omp.sh/#…` form is valid; no `https://` prefix is required. Treat that value like a password: never put it in shell history, issue text, chat, screenshots, or logs.
-7. Confirm the embedded OMP panel shows the expected transcript and participant status. That panel—not the outer **Exact room loaded** label—is authoritative for relay connectivity. A transient network outage reconnects inside the OMP client; a page reload requires the same link again.
-8. In **Command Center**, select the intended agent. Inspect its parent, mission, role authority, latest OMP lifecycle, workspace, territory, messages, checks, and evidence before assigning work. Controller-owned child sessions are pinned to the OMP profile selected during setup.
-9. Create one bounded draft in **New goal**. A repository-writing draft must name every required check, then use **Prepare isolated workspace** to bind the repository, narrow territory, exact local check commands, and one-hour lease atomically. Preparation does not start OMP or change the primary worktree.
-10. Use **Dispatch goal** only after the exact agent, acceptance criteria, authority, and workspace are correct.
-11. Keep **Approvals** for exact owner decisions. **Request changes** rejects the current request and requires a new exact candidate.
-12. Use **Evidence & Releases** to confirm Quality, Security, checks, and owner approval all refer to one immutable candidate. **Gates recorded** means the ledger prerequisites pass; the controller still recomputes the full identity immediately before its final release decision. This controller cannot deploy.
-13. Use **Interrupt** or **Cancel** on the exact selected controller-owned session when required. Use **Paired OMP Session** for the externally paired room. Closing the browser does not stop controller-owned OMP processes. Accepting verified completion stops that goal's producer session.
-14. For a `blocked`, `failed`, or `cancelled` goal, use the two-step **Authorize retry** control only after inspecting retained state. Retry starts a new bounded OMP attempt, renews an expired territory lease, and invalidates any attached candidate authority first. Use **Abandon attempt** instead to quarantine the workspace and release its lease.
-15. To switch the external OMP room, choose **Disconnect room**, then **Forget binding**, then pair the new room. Stop the controller with `Ctrl-C`; confirm shutdown before moving or deleting local state.
+The installer creates `~/.local/bin/accomplish` and refuses to overwrite another command.
 
-For one explicit provider-backed proof after installation, run `npm run smoke:live-omp`. It creates disposable state, accepts only the exact response `READY`, shuts down its OMP child, and removes the temporary registry.
+## Initialize and run a project
+
+1. Change to the exact target Git repository.
+2. Run `accomplish init --name "Project Name" --owner "Owner Name" --omp-profile "default"`.
+3. Run `accomplish open`. Confirm the displayed project name, project ID, repository, capsule path, port, and controller state.
+4. On first use of that capsule, run `/collab` in the exact terminal OMP session to control. Scan its QR code or paste only the full-control value printed after **or any web browser**. Treat that value like a password: never put it in shell history, issue text, chat, screenshots, or logs.
+5. Confirm the embedded OMP panel shows the expected transcript and participant status. A transient network outage reconnects inside the OMP client; a page reload requires the same link again.
+6. In **Command Center**, inspect an agent's parent, mission, authority, current lifecycle, workspace, territory, messages, checks, and evidence before assigning work.
+7. Create one bounded draft in **New goal**, or prefill one without dispatch through:
+
+   ```bash
+   accomplish "Task title" \
+     --description "Bounded context and constraints" \
+     --outcome "Observable intended outcome"
+   ```
+
+8. A repository-writing draft must name every required check. **Prepare isolated workspace** can bind only the capsule's canonical repository, narrow territory, exact local check commands, and one-hour lease. Preparation does not start OMP or change the primary worktree.
+9. Select **Dispatch goal** only after the exact agent, acceptance criteria, authority, and workspace are correct.
+10. Keep **Approvals** for exact owner decisions. **Request changes** rejects the current request and requires a new exact candidate.
+11. Use **Evidence & Releases** to confirm Quality, Security, checks, and owner approval refer to one immutable candidate. ACCOMP-lish cannot deploy.
+12. Use **Interrupt**, **Cancel**, **Authorize retry**, or **Abandon attempt** only on the exact selected controller-owned session after inspecting retained state.
+13. To switch the external OMP room for this project, choose **Disconnect room**, then **Forget binding**, then pair the new room.
+14. Stop this capsule with `accomplish stop`. Closing the browser alone does not stop its controller-owned OMP processes.
+
+Use `accomplish projects` to see every capsule and state. Multiple projects may run concurrently because their ports, state, and process identities are distinct. A lifecycle command refuses to stop a process unless its live health identity matches the selected capsule's recorded project, instance, process, and port.
+
+For one explicit provider-backed proof after installation, run `npm run smoke:live-omp` from the ACCOMP-lish installation. It creates disposable state, accepts only the exact response `READY`, shuts down its OMP child, and removes the temporary registry.
 
 
 ## Prerequisites
@@ -41,17 +56,17 @@ For one explicit provider-backed proof after installation, run `npm run smoke:li
 Optional deterministic model overrides:
 
 ```bash
-export OACC_OMP_PROVIDER=openai-codex
-export OACC_MODEL_LUNA=gpt-5.6-luna
-export OACC_MODEL_TERRA=gpt-5.6-terra
-export OACC_MODEL_SOL=gpt-5.6-sol
+export ACCOMPLISH_OMP_PROVIDER=openai-codex
+export ACCOMPLISH_MODEL_LUNA=gpt-5.6-luna
+export ACCOMPLISH_MODEL_TERRA=gpt-5.6-terra
+export ACCOMPLISH_MODEL_SOL=gpt-5.6-sol
 ```
 
 The controller records the selected route and exact effective provider/model for every session. It fails initialization if OMP reports a different model, reasoning level, tool set, or session-file mode.
 
 ## Install and verify
 
-From the control-center project:
+From the ACCOMP-lish installation:
 
 ```bash
 npm ci
@@ -89,52 +104,59 @@ The service refuses non-loopback bind addresses, Host headers, and remote client
 
 ## Local state
 
-Default controller state:
+Normal project state:
 
 ```text
-.data/control-center.sqlite3
-.data/controller-secret
-.data/omp/restricted.yml
-.data/omp/cwd/
-.data/workspaces/
-.data/backups/
-.data/tmp/
+~/Library/Application Support/ACCOMP-lish/
+├── registry.json
+└── projects/<project-id>/
+    ├── organization.json
+    ├── controller.log
+    ├── runtime.json
+    └── state/
+        ├── control-center.sqlite3
+        ├── controller-secret
+        ├── omp/
+        ├── workspaces/
+        ├── backups/
+        └── tmp/
 ```
 
-Permissions are created owner-only. `.data/`, build outputs, and coverage are Git-ignored.
+Directories and files are created owner-only. The standalone developer server uses `.data/`; multi-project commands never store controller state in a target repository.
 
-To use a separate disposable state directory:
+For direct maintenance of one capsule:
 
 ```bash
-OACC_DATA_DIR=/absolute/private/path NODE_ENV=production npm start
+ACCOMPLISH_DATA_DIR=/absolute/capsule/state npm run db:verify
 ```
 
-Never point `OACC_DATA_DIR` inside the control-center repository, a target repository, or another customer-data repository.
+Never point `ACCOMPLISH_DATA_DIR` inside the ACCOMP-lish source repository, a target repository, or another project's capsule.
 
 ## Backup and restore
 
-Create a consistent SQLite backup while the controller is running or stopped:
+Create a consistent SQLite backup while the selected controller is running or stopped:
 
 ```bash
+export ACCOMPLISH_DATA_DIR=/absolute/capsule/state
 npm run db:backup
 ```
 
-The command uses SQLite's online backup API, runs integrity and foreign-key checks, writes an owner-only file under `.data/backups/`, and prints its exact path. Copy the whole `.data/` directory separately when detached workspaces must also be recoverable; the SQLite backup does not contain worktree files.
+The command uses SQLite's online backup API, runs integrity and foreign-key checks, writes an owner-only file under the selected state's `backups/` directory, and prints its exact path. Copy the whole `state/` directory separately when detached workspaces must also be recoverable; the SQLite backup does not contain worktree files.
 
-Verify either the live registry or one backup without changing it:
+Verify either the selected live registry or one backup without changing it:
 
 ```bash
 npm run db:verify
 npm run db:verify -- /absolute/path/to/control-center-backup.sqlite3
 ```
 
-Restore only after stopping the controller and confirming no controller process remains:
+Restore only after `accomplish stop` confirms the selected project controller has stopped:
 
 ```bash
 npm run db:restore -- /absolute/path/to/control-center-backup.sqlite3 --confirm-controller-stopped
 ```
 
-Restore verifies the source, requires an exclusive target lock, stages and verifies a copy, preserves the previous database as `.pre-restore-<timestamp>`, removes old WAL/SHM companions from the live name, installs the replacement, and verifies it again. Keep the controller secret with the restored state so signed local sessions behave predictably. Restore the matching `.data/workspaces/` copy when continued candidate inspection is required. After restart, inspect disconnected sessions and blocked goals; no OMP action is replayed automatically.
+Restore verifies the source, requires an exclusive target lock, stages and verifies a copy, preserves the previous database as `.pre-restore-<timestamp>`, removes old WAL/SHM companions from the live name, installs the replacement, and verifies it again. Keep the controller secret with the restored state so signed local sessions behave predictably. Restore the matching `state/workspaces/` copy when continued candidate inspection is required. After restart, inspect disconnected sessions and blocked goals; no OMP action is replayed automatically.
 
 ## Dashboard workflow
 

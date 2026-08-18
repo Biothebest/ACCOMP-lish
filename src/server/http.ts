@@ -121,7 +121,17 @@ export async function buildHttpServer(controlCenter: ControlCenter): Promise<Fas
     );
   });
 
-  server.get("/api/health", async () => ({ status: "ok", safetyMode: "local_only" }));
+  server.get("/api/health", async () => ({
+    status: "ok",
+    productName: "ACCOMP-lish",
+    version: CONTROLLER_VERSION,
+    safetyMode: "local_only",
+    projectId: controlCenter.config.projectId,
+    organizationName: controlCenter.config.organizationName,
+    processId: process.pid,
+    instanceId: controlCenter.config.instanceId,
+    port: controlCenter.config.port,
+  }));
   server.get("/api/session", async (_request, reply) => auth.create(reply));
   server.delete("/api/session", async (request, reply) => {
     auth.requireMutation(request);

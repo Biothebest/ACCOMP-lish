@@ -3,10 +3,10 @@ import type { DataClass, GoalSummary, ModelRoute, RiskLevel, RoleContract } from
 export const MODEL_POLICY_VERSION = "2026-08-17.1";
 
 export interface ModelEnvironment {
-  OACC_OMP_PROVIDER?: string | undefined;
-  OACC_MODEL_LUNA?: string | undefined;
-  OACC_MODEL_TERRA?: string | undefined;
-  OACC_MODEL_SOL?: string | undefined;
+  ACCOMPLISH_OMP_PROVIDER?: string | undefined;
+  ACCOMPLISH_MODEL_LUNA?: string | undefined;
+  ACCOMPLISH_MODEL_TERRA?: string | undefined;
+  ACCOMPLISH_MODEL_SOL?: string | undefined;
 }
 
 export interface ModelDecision {
@@ -23,10 +23,10 @@ export interface ModelDecision {
 export function buildModelRoutes(
   environment: ModelEnvironment = process.env,
 ): Readonly<Record<string, ModelRoute>> {
-  const provider = environment.OACC_OMP_PROVIDER?.trim() || "openai-codex";
-  const luna = environment.OACC_MODEL_LUNA?.trim() || "gpt-5.6-luna";
-  const terra = environment.OACC_MODEL_TERRA?.trim() || "gpt-5.6-terra";
-  const sol = environment.OACC_MODEL_SOL?.trim() || "gpt-5.6-sol";
+  const provider = environment.ACCOMPLISH_OMP_PROVIDER?.trim() || "openai-codex";
+  const luna = environment.ACCOMPLISH_MODEL_LUNA?.trim() || "gpt-5.6-luna";
+  const terra = environment.ACCOMPLISH_MODEL_TERRA?.trim() || "gpt-5.6-terra";
+  const sol = environment.ACCOMPLISH_MODEL_SOL?.trim() || "gpt-5.6-sol";
 
   return {
     "route-routine-specialist": {

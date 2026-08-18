@@ -5,7 +5,7 @@ import type { ApiSession } from "../shared/contracts.js";
 import type { ControllerConfig } from "./config.js";
 import { safeEqual, sha256 } from "./security.js";
 
-const COOKIE_NAME = "oacc_session";
+const COOKIE_NAME = "accomplish_session";
 
 export class LocalSessionAuth {
   constructor(

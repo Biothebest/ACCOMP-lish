@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,6 +8,9 @@ import { OMP_MAX_FRAME_BYTES } from "./rpc-frame.js";
 
 export interface ControllerConfig {
   projectRoot: string;
+  projectId: string;
+  repositoryRoot: string | null;
+  instanceId: string;
   organizationConfigPath: string;
   organizationName: string;
   ownerDisplayName: string;
@@ -71,6 +74,18 @@ function integerSetting(name: string, fallback: number, minimum: number, maximum
   return value;
 }
 
+function validateIdentifier(name: string, raw: string): string {
+  const value = raw.trim();
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(value)) {
+    throw new Error(`${name} must contain 1–128 letters, digits, dots, underscores, or hyphens`);
+  }
+  return value;
+}
+
+function identifierSetting(name: string, fallback: string): string {
+  return validateIdentifier(name, process.env[name] ?? fallback);
+}
+
 function loadOrCreateSecret(dataDir: string): Buffer {
   const secretPath = join(dataDir, "controller-secret");
   if (existsSync(secretPath)) {
@@ -116,7 +131,7 @@ export function loadConfig(overrides: Partial<ControllerConfig> = {}): Controlle
   const projectRoot = overrides.projectRoot ?? resolve(moduleDirectory, "../..");
   const organizationConfigPath = resolve(
     overrides.organizationConfigPath ??
-      process.env.OACC_ORGANIZATION_CONFIG ??
+      process.env.ACCOMPLISH_ORGANIZATION_CONFIG ??
       join(projectRoot, "config", "organization.json"),
   );
   const fileOrganization =
@@ -131,15 +146,28 @@ export function loadConfig(overrides: Partial<ControllerConfig> = {}): Controlle
   const organization = ORGANIZATION_CONFIG.parse({
     ...fileOrganization,
     organizationName:
-      overrides.organizationName ?? process.env.OACC_ORGANIZATION_NAME ?? fileOrganization.organizationName,
+      overrides.organizationName ??
+      process.env.ACCOMPLISH_ORGANIZATION_NAME ??
+      fileOrganization.organizationName,
     ownerDisplayName:
-      overrides.ownerDisplayName ?? process.env.OACC_OWNER_NAME ?? fileOrganization.ownerDisplayName,
+      overrides.ownerDisplayName ?? process.env.ACCOMPLISH_OWNER_NAME ?? fileOrganization.ownerDisplayName,
     ompProfile: overrides.ompProfile ?? fileOrganization.ompProfile,
   });
-  const dataDir = overrides.dataDir ?? resolve(process.env.OACC_DATA_DIR || join(projectRoot, ".data"));
-  const requestedHost = overrides.host ?? process.env.OACC_HOST ?? "127.0.0.1";
+  const projectId = validateIdentifier(
+    "ACCOMPLISH_PROJECT_ID",
+    overrides.projectId ?? identifierSetting("ACCOMPLISH_PROJECT_ID", "standalone"),
+  );
+  const instanceId = validateIdentifier(
+    "ACCOMPLISH_INSTANCE_ID",
+    overrides.instanceId ?? identifierSetting("ACCOMPLISH_INSTANCE_ID", "standalone"),
+  );
+  const configuredRepositoryRoot =
+    overrides.repositoryRoot ?? process.env.ACCOMPLISH_REPOSITORY_ROOT?.trim() ?? null;
+  const repositoryRoot = configuredRepositoryRoot ? realpathSync(resolve(configuredRepositoryRoot)) : null;
+  const dataDir = overrides.dataDir ?? resolve(process.env.ACCOMPLISH_DATA_DIR || join(projectRoot, ".data"));
+  const requestedHost = overrides.host ?? process.env.ACCOMPLISH_HOST ?? "127.0.0.1";
   if (!LOOPBACK_HOSTS[requestedHost]) {
-    throw new Error(`OACC_HOST must be loopback-only; received ${requestedHost}`);
+    throw new Error(`ACCOMPLISH_HOST must be loopback-only; received ${requestedHost}`);
   }
   const host = requestedHost as ControllerConfig["host"];
   const environment =
@@ -160,7 +188,7 @@ export function loadConfig(overrides: Partial<ControllerConfig> = {}): Controlle
   writeRestrictedOmpConfig(ompConfigPath);
 
   const trustedOmpPath = resolve(join(homedir(), ".local", "bin", "omp"));
-  const ompPath = resolve(overrides.ompPath ?? process.env.OACC_OMP_PATH ?? trustedOmpPath);
+  const ompPath = resolve(overrides.ompPath ?? process.env.ACCOMPLISH_OMP_PATH ?? trustedOmpPath);
   const fakeOmpAllowed = overrides.fakeOmpAllowed ?? environment === "test";
   if (fakeOmpAllowed && environment !== "test") {
     throw new Error("Fake OMP adapters are permitted only in the test environment");
@@ -171,6 +199,9 @@ export function loadConfig(overrides: Partial<ControllerConfig> = {}): Controlle
 
   return {
     projectRoot,
+    projectId,
+    repositoryRoot,
+    instanceId,
     organizationConfigPath,
     organizationName: organization.organizationName,
     ownerDisplayName: organization.ownerDisplayName,
@@ -180,22 +211,25 @@ export function loadConfig(overrides: Partial<ControllerConfig> = {}): Controlle
     webDistPath: overrides.webDistPath ?? join(projectRoot, "dist-web"),
     agentCommandsDir: overrides.agentCommandsDir ?? join(projectRoot, "agents"),
     host,
-    port: overrides.port ?? integerSetting("OACC_PORT", 4317, 1024, 65_535),
+    port: overrides.port ?? integerSetting("ACCOMPLISH_PORT", 4317, 1024, 65_535),
     ompPath,
     ompConfigPath,
     ownerAgentId: "OWNER-01",
-    maxConcurrentSessions: overrides.maxConcurrentSessions ?? integerSetting("OACC_MAX_SESSIONS", 4, 1, 12),
+    maxConcurrentSessions:
+      overrides.maxConcurrentSessions ?? integerSetting("ACCOMPLISH_MAX_SESSIONS", 4, 1, 12),
     staleSessionMs:
-      overrides.staleSessionMs ?? integerSetting("OACC_STALE_SESSION_MS", 60_000, 5_000, 900_000),
+      overrides.staleSessionMs ?? integerSetting("ACCOMPLISH_STALE_SESSION_MS", 60_000, 5_000, 900_000),
     ompRequestTimeoutMs:
-      overrides.ompRequestTimeoutMs ?? integerSetting("OACC_OMP_REQUEST_TIMEOUT_MS", 20_000, 1_000, 120_000),
+      overrides.ompRequestTimeoutMs ??
+      integerSetting("ACCOMPLISH_OMP_REQUEST_TIMEOUT_MS", 20_000, 1_000, 120_000),
     maxOmpFrameBytes:
       overrides.maxOmpFrameBytes ??
-      integerSetting("OACC_MAX_OMP_FRAME_BYTES", OMP_MAX_FRAME_BYTES, 1_024, OMP_MAX_FRAME_BYTES),
+      integerSetting("ACCOMPLISH_MAX_OMP_FRAME_BYTES", OMP_MAX_FRAME_BYTES, 1_024, OMP_MAX_FRAME_BYTES),
     approvalTtlMs:
-      overrides.approvalTtlMs ?? integerSetting("OACC_APPROVAL_TTL_MS", 900_000, 60_000, 86_400_000),
+      overrides.approvalTtlMs ?? integerSetting("ACCOMPLISH_APPROVAL_TTL_MS", 900_000, 60_000, 86_400_000),
     sessionCookieTtlMs:
-      overrides.sessionCookieTtlMs ?? integerSetting("OACC_COOKIE_TTL_MS", 43_200_000, 300_000, 86_400_000),
+      overrides.sessionCookieTtlMs ??
+      integerSetting("ACCOMPLISH_COOKIE_TTL_MS", 43_200_000, 300_000, 86_400_000),
     sessionSecret: overrides.sessionSecret ?? loadOrCreateSecret(dataDir),
     environment,
     fakeOmpAllowed,

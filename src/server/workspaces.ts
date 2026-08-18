@@ -43,6 +43,9 @@ export class WorkspaceManager {
       );
     }
     const repositoryRoot = await this.resolveRepositoryRoot(input.repositoryPath);
+    if (this.config.repositoryRoot && repositoryRoot !== this.config.repositoryRoot) {
+      throw new Error("Repository is outside the selected ACCOMP-lish project capsule");
+    }
     const goal = this.store.getGoal(input.goalId);
     if (goal.ownerAgentId !== input.agentId) {
       throw new Error("Workspace agent must own the goal");
@@ -351,7 +354,7 @@ export class WorkspaceManager {
       `Workspace write: ${normalizeTerritoryPath(path)}`,
     );
     await mkdir(parent, { recursive: true, mode: 0o700 });
-    const temporaryPath = `${target}.oacc-${randomUUID()}.tmp`;
+    const temporaryPath = `${target}.accomplish-${randomUUID()}.tmp`;
     await writeFile(temporaryPath, content, { encoding: "utf-8", flag: "wx", mode: 0o600 });
     await rename(temporaryPath, target);
     this.store.database

@@ -1,13 +1,18 @@
 {
-  "name": "omp-agent-control-center",
-  "version": "0.1.0",
+  "name": "accomp-lish",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
+  "bin": {
+    "accomplish": "scripts/accomplish.mjs"
+  },
   "engines": {
     "node": ">=22.0.0"
   },
   "scripts": {
     "setup": "node scripts/setup.mjs",
+    "accomplish": "node scripts/accomplish.mjs",
+    "install:cli": "node scripts/accomplish.mjs install",
     "clean": "node scripts/clean.mjs",
     "db:backup": "node scripts/sqlite-maintenance.mjs backup",
     "db:verify": "node scripts/sqlite-maintenance.mjs verify",

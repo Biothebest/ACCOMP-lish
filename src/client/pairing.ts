@@ -7,7 +7,7 @@ const ROOM_PATTERN = /^[A-Za-z0-9_-]{8,128}$/;
 const KEY_PATTERN = /^[A-Za-z0-9_-]+$/;
 const FINGERPRINT_PATTERN = /^[a-f0-9]{64}$/;
 
-export const PAIRING_IDENTITY_STORAGE_KEY = "oacc.paired-room.v1";
+export const PAIRING_IDENTITY_STORAGE_KEY = "accomplish.paired-room.v1";
 
 export interface PairingIdentity {
   version: 1;

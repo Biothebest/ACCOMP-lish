@@ -4,8 +4,8 @@ import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { createInterface } from "node:readline";
 
-const ompPath = resolve(process.env.OACC_OMP_PATH || join(homedir(), ".local", "bin", "omp"));
-const directory = await mkdtemp(join(tmpdir(), "oacc-omp-proof-"));
+const ompPath = resolve(process.env.ACCOMPLISH_OMP_PATH || join(homedir(), ".local", "bin", "omp"));
+const directory = await mkdtemp(join(tmpdir(), "accomplish-omp-proof-"));
 const configPath = join(directory, "restricted.yml");
 const config = [
   "disabledProviders:",

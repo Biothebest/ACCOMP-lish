@@ -15,6 +15,7 @@ import type {
   ImprovementState,
   ReleaseGateSummary,
 } from "../shared/contracts.js";
+import { type AccomplishGoalPrefill, consumeAccomplishGoalPrefill } from "./accomplish.js";
 import {
   type CreateGoalRequest,
   type CreateImprovementRequest,
@@ -105,7 +106,8 @@ export default function App(): ReactNode {
   const [message, setMessage] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [goalModalOpen, setGoalModalOpen] = useState(false);
+  const [goalPrefill, setGoalPrefill] = useState<AccomplishGoalPrefill | null>(consumeAccomplishGoalPrefill);
+  const [goalModalOpen, setGoalModalOpen] = useState(goalPrefill !== null);
   const [workspaceGoal, setWorkspaceGoal] = useState<GoalSummary | null>(null);
   const [liveText, setLiveText] = useState<Record<string, string>>({});
   const refreshTimer = useRef<NodeJS.Timeout | null>(null);
@@ -256,11 +258,11 @@ export default function App(): ReactNode {
       <header className="topbar">
         <div className="brand-lockup">
           <div className="brand-mark" aria-hidden="true">
-            <span>O</span>
+            <span>A</span>
           </div>
           <div>
             <p className="eyebrow">{snapshot?.controller.organizationName ?? "OMP"}</p>
-            <h1>{cloudMode ? "Agent Cloud" : "Agent Control Center"}</h1>
+            <h1>{cloudMode ? "Agent Cloud" : "ACCOMP-lish"}</h1>
           </div>
         </div>
         <div className="topbar-actions">
@@ -343,7 +345,10 @@ export default function App(): ReactNode {
               setCloudAgentId(agentId);
             }}
             onClose={() => setCloudAgentId(null)}
-            onNewGoal={() => setGoalModalOpen(true)}
+            onNewGoal={() => {
+              setGoalPrefill(null);
+              setGoalModalOpen(true);
+            }}
             onAdvanced={() => {
               if (cloudAgentId) setSelectedAgentId(cloudAgentId);
               setView("command");
@@ -364,7 +369,14 @@ export default function App(): ReactNode {
             >
               <Icon name="refresh" /> Refresh
             </button>
-            <button className="primary-button" type="button" onClick={() => setGoalModalOpen(true)}>
+            <button
+              className="primary-button"
+              type="button"
+              onClick={() => {
+                setGoalPrefill(null);
+                setGoalModalOpen(true);
+              }}
+            >
               <Icon name="plus" /> New goal
             </button>
           </div>
@@ -516,11 +528,18 @@ export default function App(): ReactNode {
         <GoalModal
           agents={snapshot.agents}
           busy={busy}
-          onClose={() => setGoalModalOpen(false)}
+          initialInput={goalPrefill}
+          onClose={() => {
+            setGoalPrefill(null);
+            setGoalModalOpen(false);
+          }}
           onSubmit={(input) => {
             void act(() => api.createGoal(input), "Goal created and held in draft until dispatch").then(
               (succeeded) => {
-                if (succeeded) setGoalModalOpen(false);
+                if (succeeded) {
+                  setGoalPrefill(null);
+                  setGoalModalOpen(false);
+                }
               },
             );
           }}
@@ -1949,19 +1968,21 @@ function ActivityFeed({
 function GoalModal({
   agents,
   busy,
+  initialInput,
   onClose,
   onSubmit,
 }: {
   agents: AgentSummary[];
   busy: boolean;
+  initialInput: AccomplishGoalPrefill | null;
   onClose(): void;
   onSubmit(input: CreateGoalRequest): void;
 }): ReactNode {
   const eligible = agents.filter((agent) => agent.kind !== "human" && !agent.archivedAt);
   const [ownerAgentId, setOwnerAgentId] = useState("ORCH-01");
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [criteria, setCriteria] = useState("");
+  const [title, setTitle] = useState(initialInput?.task ?? "");
+  const [description, setDescription] = useState(initialInput?.description ?? "");
+  const [criteria, setCriteria] = useState(initialInput?.outcome ?? "");
   const [riskLevel, setRiskLevel] = useState<"low" | "medium" | "high" | "critical">("medium");
   const [writeScope, setWriteScope] = useState<"none" | "isolated_repository">("none");
   const [requiredChecks, setRequiredChecks] = useState("");
@@ -2340,9 +2361,9 @@ function LoadingScreen(): ReactNode {
   return (
     <div className="loading-screen">
       <div className="brand-mark large">
-        <span>O</span>
+        <span>A</span>
       </div>
-      <p className="eyebrow">OMP Agent Control Center</p>
+      <p className="eyebrow">ACCOMP-lish</p>
       <h1>Connecting to the local control plane</h1>
       <span className="loading-bar">
         <i />

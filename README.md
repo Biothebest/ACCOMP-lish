@@ -1,6 +1,6 @@
-# OMP Agent Control Center
+# ACCOMP-lish
 
-A reusable, localhost-only operations dashboard for supervising a bounded hierarchy of OMP agents. The browser shows live agent state, assignments, handoffs, approvals, evidence, isolated workspaces, and recovery controls without exposing raw terminal sessions.
+A reusable, localhost-only OMP operations dashboard and project launcher. ACCOMP-lish supervises a bounded hierarchy of agents while keeping every project's identity, OMP room binding, goals, approvals, evidence, worktrees, audit history, and runtime process in a separate local capsule.
 
 ## What it provides
 
@@ -15,6 +15,8 @@ A reusable, localhost-only operations dashboard for supervising a bounded hierar
 - Artifact-bound approvals that are invalidated by candidate mutation
 - Durable SQLite state, backup/restore, restart reconciliation, and explicit retry controls
 - A default visual **Agent Cloud** plus an **Advanced operations** console
+- A global `accomplish` command that selects the canonical Git project from any terminal session
+- Concurrent project capsules with distinct ports, databases, secrets, logs, and controller identities
 
 ## Boundary
 
@@ -23,6 +25,7 @@ This is a private, single-owner macOS appliance, not a public SaaS service.
 - HTTP binds only to `127.0.0.1` or `::1`.
 - Browser mutations require a signed local session, an exact CSRF token, and a loopback origin.
 - Repository-writing agents work only in controller-created, leased Git worktrees.
+- A project-bound controller rejects workspace access to every repository except its capsule's canonical Git root.
 - The control center does not push, merge, deploy, send email, make payments, or make legal commitments.
 - OMP sessions receive only their checked-in command contract, bounded goal, allowed host tools, and sanitized context.
 - Closing the browser does not stop controller-owned OMP processes; graceful server shutdown does.
@@ -37,63 +40,88 @@ See [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) and [`docs/OPERATIONS.md`](do
 - OMP at `~/.local/bin/omp`
 - OMP RPC protocol v2 and provider authentication in the local owner account
 
-## Fresh setup
+## Install once
 
 ```bash
 npm ci
-npm run setup
 npm run verify
-NODE_ENV=production npm start
+npm run build
+npm run install:cli
 ```
 
-Open <http://127.0.0.1:4317/>.
+`npm run install:cli` creates `~/.local/bin/accomplish` as a symlink to this reviewed installation. It refuses to replace a regular file, broken link, or link to another installation.
 
-Interactive setup asks for the organization, human-owner display name, and existing OMP profile. Non-interactive setup:
+## Use from any project
+
+Initialize one capsule from the target Git repository:
 
 ```bash
-npm run setup -- \
-  --organization "Example Organization" \
+cd /path/to/project
+accomplish init \
+  --name "Example Project" \
   --owner "Alex Owner" \
   --omp-profile "default"
 ```
 
-Setup writes the Git-ignored `config/organization.json` from the checked-in schema example. Runtime fails closed when that file is absent, malformed, or names an invalid profile.
-
-On the dashboard's first screen, open the exact terminal OMP session you intend to control and run `/collab`. Scan its QR code or paste only the full-control value printed after **or any web browser**; OMP displays that copyable value as `my.omp.sh/#…`, without a visible `https://` prefix. The link is a bearer secret: the control center gives it only to the official embedded OMP client and never sends it to the local API, database, logs, or browser storage. Only a non-secret room fingerprint is retained; reloads require the same link, and another room is rejected until the owner explicitly forgets the binding.
-
-## Project customization
-
-`config/organization.json` controls display identity and the OMP configuration scope used by controller-owned sessions:
-
-```json
-{
-  "schemaVersion": 2,
-  "organizationName": "Example Organization",
-  "ownerDisplayName": "Alex Owner",
-  "ompProfile": "default"
-}
-```
-
-Optional environment overrides:
+Then start or open only that project's dashboard:
 
 ```bash
-export OACC_ORGANIZATION_CONFIG=/absolute/path/to/organization.json
-export OACC_ORGANIZATION_NAME="Example Organization"
-export OACC_OWNER_NAME="Alex Owner"
-export OACC_DATA_DIR=/absolute/private/path
-export OACC_PORT=4317
+accomplish up
+accomplish open
+accomplish status
+accomplish stop
+```
+
+Prepare a task from any OMP or terminal session working in that repository:
+
+```bash
+accomplish "Improve scheduling" \
+  --description "Preserve the existing workflow and tenant boundary." \
+  --outcome "A verified candidate is ready for owner review."
+```
+
+The task command starts the matching project controller, opens its dashboard, and prepopulates a **New goal** draft. It never dispatches an agent automatically. Review the assigned agent, acceptance criteria, authority, required checks, and workspace before selecting **Dispatch goal**.
+
+Run `accomplish projects` to list registered capsules. When calling from outside the repository, select one explicitly with `--project <16-character-project-id>`.
+
+Each capsule lives outside every target repository at:
+
+```text
+~/Library/Application Support/ACCOMP-lish/
+├── registry.json
+└── projects/<project-id>/
+    ├── organization.json
+    ├── controller.log
+    ├── runtime.json
+    └── state/
+```
+
+The project ID is a stable digest of the canonical Git root. Each project receives a stable loopback port. Concurrent controllers cannot share a data directory or process identity, and lifecycle commands refuse to stop a process unless its health response matches the recorded project, instance, process, and port.
+
+On each dashboard's first screen, open the exact terminal OMP session you intend to control and run `/collab`. Scan its QR code or paste only the full-control value printed after **or any web browser**. The link is a bearer secret: ACCOMP-lish gives it only to the official embedded OMP client and never sends it to the local API, database, logs, or browser storage. Each project capsule retains only its own non-secret room fingerprint.
+
+## Configuration
+
+`accomplish init` writes project identity and the selected OMP profile to the private capsule. Optional direct-runtime overrides use the `ACCOMPLISH_` namespace:
+
+```bash
+export ACCOMPLISH_ORGANIZATION_CONFIG=/absolute/path/to/organization.json
+export ACCOMPLISH_ORGANIZATION_NAME="Example Organization"
+export ACCOMPLISH_OWNER_NAME="Alex Owner"
+export ACCOMPLISH_DATA_DIR=/absolute/private/path
+export ACCOMPLISH_PORT=4317
 ```
 
 Model routing can be pinned without editing source:
 
 ```bash
-export OACC_OMP_PROVIDER=openai-codex
-export OACC_MODEL_LUNA=gpt-5.6-luna
-export OACC_MODEL_TERRA=gpt-5.6-terra
-export OACC_MODEL_SOL=gpt-5.6-sol
+export ACCOMPLISH_OMP_PROVIDER=openai-codex
+export ACCOMPLISH_MODEL_LUNA=gpt-5.6-luna
+export ACCOMPLISH_MODEL_TERRA=gpt-5.6-terra
+export ACCOMPLISH_MODEL_SOL=gpt-5.6-sol
 ```
 
-A target repository is selected only when the owner prepares an isolated workspace for an authorized goal. The target repository remains separate from this control-center repository and from `.data/`.
+The legacy standalone developer path remains available through `npm run setup` and `npm start`. Normal multi-project operation should use `accomplish init`, which binds workspace preparation to the selected canonical repository.
 
 ## Tailored agent commands
 
@@ -128,10 +156,12 @@ npm run smoke:live-omp
 
 ## Local state
 
-Operational state is stored under `.data/` by default and is excluded from Git. Never place `OACC_DATA_DIR` inside this repository or a target repository.
+Normal project state is stored under `~/Library/Application Support/ACCOMP-lish/projects/<project-id>/state/`. The standalone developer server uses `.data/`. Never point `ACCOMPLISH_DATA_DIR` inside this repository, a target repository, or another project's capsule.
+
+Run database maintenance from this installation with the exact capsule state directory selected:
 
 ```bash
-npm run db:backup
-npm run db:verify
-npm run db:restore -- /absolute/path/to/backup.sqlite3 RESTORE
+ACCOMPLISH_DATA_DIR=/absolute/capsule/state npm run db:backup
+ACCOMPLISH_DATA_DIR=/absolute/capsule/state npm run db:verify
+ACCOMPLISH_DATA_DIR=/absolute/capsule/state npm run db:restore -- /absolute/path/to/backup.sqlite3 --confirm-controller-stopped
 ```

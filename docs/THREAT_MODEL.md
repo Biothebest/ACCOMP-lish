@@ -1,4 +1,4 @@
-# Local Agent Control Center Threat Model
+# ACCOMP-lish Threat Model
 
 ## Scope
 
@@ -26,6 +26,7 @@ The control center is an orchestration and review surface. It is not a customer 
 16. No generic goal-state, caller-supplied artifact identity, standalone check, evidence, gate, agent-authored approval request, or territory mutation endpoint exists. Those records originate only from atomic workspace preparation or the exact role-bound OMP host tool. Dedicated completion, retry, session cancellation, owner approval decision, and rollback paths enforce their lifecycle invariants. Completion revalidates exact evidence, checks, and on-disk identity and stops the producer session; final release evaluation recomputes identity again; rollback invalidates the candidate and approvals, releases leases, and quarantines the worktree.
 17. Setup stores one non-secret OMP profile name. Every controller-owned OMP child receives that exact `--profile`; profile choice never substitutes for session authority.
 18. External session authority comes only from a 48-byte full-control `/collab` bearer link. The raw link is validated in the browser, canonicalized to the official OMP web client, and never sent to the local API, SQLite, logs, or Web Storage. The browser retains only profile, room ID, relay origin, and a SHA-256 link fingerprint; a mismatched room, relay, key, or profile fails closed until explicit owner forget.
+19. A project launcher derives identity from the canonical Git root and assigns one private capsule, stable port, runtime record, and controller instance nonce. A project-bound controller accepts workspaces only for that exact canonical repository. Start and stop operations verify live project, instance, process, and port identity; a mismatch fails closed.
 
 ## Assets
 
@@ -38,6 +39,7 @@ The control center is an orchestration and review surface. It is not a customer 
 - Approval request hashes and decisions
 - Local session secret and OMP authentication material
 - Sanitized event and message history
+- Project registry, capsule identity, and per-project runtime records
 - Versioned role contracts, model policy, check runs, and release-gate records
 
 ## Trust boundaries
@@ -74,6 +76,7 @@ The control center is an orchestration and review surface. It is not a customer 
 | Hidden reasoning or secret leakage | Event allowlist, private-delta drop, sensitive-key redaction, assistant-output protected-material filter | Redacted marker or no event |
 | RPC memory exhaustion or parser confusion | Controller configuration supplies the 1 MiB physical frame cap; the decoder enforces a 64 MiB logical cap, strict sequential chunk validation, and fatal UTF-8 decode | Terminate exact session as protocol failure |
 | Workspace escape | Canonical roots, detached worktrees, traversal rejection, symlink resolution, lease checks | Reject operation |
+| Cross-project state or repository access | Canonical Git-root project ID; separate database, secret, room binding, port, runtime record, and worktree root; exact repository enforcement during workspace creation | Reject capsule mismatch before creating a worktree or signaling a process |
 | Concurrent edit conflict | Non-overlapping write leases tied to agent, goal, workspace, path, mode, and expiry | Reject conflicting lease |
 | Check mutates candidate | Network-denied, worktree-read-only sandbox; only temporary HOME/TMP writes | Check fails; candidate remains unchanged |
 | Unsafe or incomplete browser-defined check | Required-label equality, executable/argument validation, atomic workspace preparation, and read-only network-denied execution | Reject preparation or fail the exact run |
@@ -95,6 +98,7 @@ The control center is an orchestration and review surface. It is not a customer 
 - **Remote collaboration client trust:** paired-session content is end-to-end encrypted from the OMP host to the browser guest, and the relay is content-blind. Availability and delivery of the browser client still depend on `https://my.omp.sh`; compromise of that client origin could expose a link presented to it. Use only the reviewed official origin, stop `/collab` after suspected disclosure, and self-host the reviewed OMP web client if this supply-chain risk becomes unacceptable.
 - **macOS-only check sandbox:** `sandbox-exec` behavior is verified on the supported macOS host. This project is not portable to another operating system without a separately reviewed sandbox implementation.
 - **Single-controller assumption:** SQLite and in-memory session ownership assume one controller process for one data directory. Do not run two controller instances against the same database.
+- **Shared core installation:** all projects execute the same reviewed ACCOMP-lish code and agent contracts. A compromised core installation can affect every capsule. Keep one reviewed installation, verify before upgrades, and do not point the global command at an untrusted clone.
 - **No autonomous retention deletion yet:** sanitized operational state persists until the owner deletes the local data directory. Raw OMP transcript persistence is disabled. A retention worker must be separately authorized and tested before addition.
 - **No production capability:** passing local gates does not authorize email, payments, legal commitments, remote pushes, hosted migrations, provider enablement, or deployment. Those adapters do not exist in this phase.
 - **Model nondeterminism:** pinned provider/model/reasoning configuration reduces routing ambiguity but does not make output deterministic. Observable evidence and independent review remain mandatory.
