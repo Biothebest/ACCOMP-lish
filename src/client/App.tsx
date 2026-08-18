@@ -27,10 +27,10 @@ import { CloudExperience } from "./CloudExperience.js";
 import { PairedSession, PairingOnboarding } from "./PairingExperience.js";
 import {
   establishPairing,
+  loadAndMigratePairingIdentity,
   PAIRING_IDENTITY_STORAGE_KEY,
   type PairingConnection,
   type PairingIdentity,
-  parseStoredPairingIdentity,
   serializePairingIdentity,
 } from "./pairing.js";
 
@@ -60,10 +60,7 @@ const APPROVAL_PAGE_SIZE = 8;
 function loadStoredPairingIdentity(): PairingIdentity | null {
   if (typeof window === "undefined") return null;
   try {
-    const stored = window.localStorage.getItem(PAIRING_IDENTITY_STORAGE_KEY);
-    const identity = parseStoredPairingIdentity(stored);
-    if (stored && !identity) window.localStorage.removeItem(PAIRING_IDENTITY_STORAGE_KEY);
-    return identity;
+    return loadAndMigratePairingIdentity(window.localStorage);
   } catch {
     return null;
   }

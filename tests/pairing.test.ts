@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   establishPairing,
+  loadAndMigratePairingIdentity,
   pairingDisplayFingerprint,
   parseStoredPairingIdentity,
   serializePairingIdentity,
@@ -69,6 +70,22 @@ describe("exclusive OMP collaboration pairing", () => {
     await expect(
       establishPairing(`${ROOM}.${FULL_KEY}`, "another-profile", firstConnection.identity),
     ).rejects.toThrow("bound to OMP profile st");
+  });
+
+  it("migrates the pre-rename room binding without retaining a second identity", async () => {
+    const identity = (await establishPairing(`${ROOM}.${FULL_KEY}`, "st", null)).identity;
+    const values = new Map<string, string>([["oacc.paired-room.v1", serializePairingIdentity(identity)]]);
+    const storage = {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+      removeItem: (key: string) => {
+        values.delete(key);
+      },
+    };
+
+    expect(loadAndMigratePairingIdentity(storage)).toEqual(identity);
+    expect(values.get("accomplish.paired-room.v1")).toBe(serializePairingIdentity(identity));
+    expect(values.has("oacc.paired-room.v1")).toBe(false);
   });
 
   it("fails closed on malformed persisted pairing identity", () => {

@@ -8,6 +8,13 @@ const KEY_PATTERN = /^[A-Za-z0-9_-]+$/;
 const FINGERPRINT_PATTERN = /^[a-f0-9]{64}$/;
 
 export const PAIRING_IDENTITY_STORAGE_KEY = "accomplish.paired-room.v1";
+const PRE_RENAME_PAIRING_IDENTITY_STORAGE_KEY = "oacc.paired-room.v1";
+
+interface PairingIdentityStorage {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+  removeItem(key: string): void;
+}
 
 export interface PairingIdentity {
   version: 1;
@@ -101,6 +108,23 @@ export function parseStoredPairingIdentity(value: string | null): PairingIdentit
   } catch {
     return null;
   }
+}
+
+export function loadAndMigratePairingIdentity(storage: PairingIdentityStorage): PairingIdentity | null {
+  const currentValue = storage.getItem(PAIRING_IDENTITY_STORAGE_KEY);
+  const currentIdentity = parseStoredPairingIdentity(currentValue);
+  if (currentIdentity) return currentIdentity;
+  if (currentValue !== null) storage.removeItem(PAIRING_IDENTITY_STORAGE_KEY);
+
+  const previousValue = storage.getItem(PRE_RENAME_PAIRING_IDENTITY_STORAGE_KEY);
+  const previousIdentity = parseStoredPairingIdentity(previousValue);
+  if (!previousIdentity) {
+    if (previousValue !== null) storage.removeItem(PRE_RENAME_PAIRING_IDENTITY_STORAGE_KEY);
+    return null;
+  }
+  storage.setItem(PAIRING_IDENTITY_STORAGE_KEY, serializePairingIdentity(previousIdentity));
+  storage.removeItem(PRE_RENAME_PAIRING_IDENTITY_STORAGE_KEY);
+  return previousIdentity;
 }
 
 export function pairingDisplayFingerprint(identity: PairingIdentity): string {

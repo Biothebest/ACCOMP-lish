@@ -100,6 +100,8 @@ The project ID is a stable digest of the canonical Git root. Each project receiv
 
 On each dashboard's first screen, open the exact terminal OMP session you intend to control and run `/collab`. Scan its QR code or paste only the full-control value printed after **or any web browser**. The link is a bearer secret: ACCOMP-lish gives it only to the official embedded OMP client and never sends it to the local API, database, logs, or browser storage. Each project capsule retains only its own non-secret room fingerprint.
 
+The ACCOMP-lish rename migrates the prior non-secret browser room identity into the new storage namespace and removes the old entry. It never copies or persists the `/collab` bearer key.
+
 ## Configuration
 
 `accomplish init` writes project identity and the selected OMP profile to the private capsule. Optional direct-runtime overrides use the `ACCOMPLISH_` namespace:
