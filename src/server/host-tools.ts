@@ -707,7 +707,10 @@ export class HostToolExecutor {
   }
 
   safeResult(value: unknown): string {
-    return JSON.stringify(sanitizeMetadata(value));
+    const sanitized = Array.isArray(value)
+      ? value.map((item) => sanitizeMetadata(item))
+      : sanitizeMetadata(value);
+    return JSON.stringify(sanitized);
   }
 }
 

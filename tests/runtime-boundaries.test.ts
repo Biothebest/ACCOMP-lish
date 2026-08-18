@@ -520,6 +520,16 @@ describe("isolated workspaces, leases, and checks", () => {
     const verifierToolNames = hostTools.definitionsFor(verifierBinding).map((tool) => tool.name);
     expect(verifierToolNames).toContain("workspace_read");
     expect(verifierToolNames).toContain("run_check");
+    const serializedRoster = JSON.parse(
+      hostTools.safeResult(await hostTools.execute(verifierBinding, "list_agents", {})),
+    ) as Array<{ agentId: string }>;
+    expect(serializedRoster).toHaveLength(store.listAgents().length);
+    expect(serializedRoster).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ agentId: "DIR-TECH" }),
+        expect.objectContaining({ agentId: "ORCH-01" }),
+      ]),
+    );
     await expect(
       hostTools.execute(verifierBinding, "workspace_read", {
         subject_goal_id: backendGoal.goalId,
