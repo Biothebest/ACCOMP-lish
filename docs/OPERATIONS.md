@@ -12,7 +12,7 @@ The controller never stores its own state in a target repository.
 
 1. Run `npm ci`.
 2. Run `npm run setup` and enter the organization and human-owner display names. For non-interactive setup, run `npm run setup -- --organization "Organization Name" --owner "Owner Name"`.
-3. Run `npm run verify`, then `npm run build`.
+3. Run `npm run verify`; the canonical gate includes the production build.
 4. Start the controller with `NODE_ENV=production npm start`.
 5. Open `http://127.0.0.1:4317/`. Confirm the header says **Live OMP stream** and the footer shows the expected controller, OMP, policy, and role-contract versions.
 6. In **Command Center**, select the intended agent. Inspect its parent, mission, role authority, latest OMP lifecycle, workspace, territory, messages, checks, and evidence before assigning work.

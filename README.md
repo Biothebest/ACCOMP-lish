@@ -43,7 +43,6 @@ See [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) and [`docs/OPERATIONS.md`](do
 npm ci
 npm run setup
 npm run verify
-npm run build
 NODE_ENV=production npm start
 ```
 
